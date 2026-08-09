@@ -55,7 +55,8 @@ its entries by code or heading.
 
 ## Updating the source data
 
-Place exactly one official file named `ONIX_BookProduct_Codelists_Issue_<issue>.csv` in `data/raw/`, then run:
+Place exactly one official EDItEUR JSON export named
+`ONIX_BookProduct_Codelists_Issue_<issue>.json` in `data/raw/`, then run:
 
 ```bash
 pnpm generate
@@ -63,6 +64,6 @@ pnpm validate:data
 pnpm test
 ```
 
-The importer never modifies files in `data/raw/`. It writes normalized JSON under `data/generated/` and runtime TypeScript modules under `src/generated/`; both are generated files and must not be edited manually. The official CSV does not include human-readable codelist titles. If EDItEUR provides a companion heading catalogue, place it in `data/raw/` as `codelist-headings.json`, an object mapping list numbers to titles; otherwise stable labels such as `ONIX codelist 27` are generated.
+The importer never modifies files in `data/raw/`. It writes normalized JSON under `data/generated/` and runtime TypeScript modules under `src/generated/`; both are generated files and must not be edited manually. The official JSON contains the human-readable codelist titles, including lists with no entries.
 
 Additional official fields (notes and issue-added, issue-modified, and issue-deprecated values) are retained in `data/generated/codelists.json` for future expansion, while the V1 public entry API intentionally exposes only `code` and `heading`.
