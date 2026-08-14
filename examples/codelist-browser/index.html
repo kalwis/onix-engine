@@ -3,21 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ONIX Codelist Browser</title>
+    <title>ONIX and Thema Browser</title>
   </head>
   <body>
     <main class="page-shell">
       <header>
         <p class="eyebrow">ONIX for Books</p>
-        <h1>Codelist browser</h1>
+        <h1>Code browser</h1>
         <p class="intro">
-          Browse the data exposed by <code>onix-codelists</code> and search a
-          selected list by code or heading.
+          Browse ONIX for Books codelists and Thema v1.6 codes exposed by
+          <code>onix-codelists</code>.
         </p>
       </header>
 
       <section class="controls" aria-label="Codelist controls">
         <label>
+          Dataset
+          <select id="dataset-select">
+            <option value="onix">ONIX for Books codelists</option>
+            <option value="thema">Thema v1.6</option>
+          </select>
+        </label>
+        <label id="codelist-control">
           Codelist
           <select id="codelist-select"></select>
         </label>

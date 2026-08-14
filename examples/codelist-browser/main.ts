@@ -1,16 +1,30 @@
-import { getCodelist, getCodelists, metadata } from "../../src/index.ts";
+import {
+  getCodelist,
+  getCodelists,
+  getThemaEntries,
+  metadata,
+  themaMetadata,
+} from "../../src/index.ts";
 import "./style.css";
 
-const codelistSelect = document.querySelector<HTMLSelectElement>("#codelist-select");
+const codelistSelect =
+  document.querySelector<HTMLSelectElement>("#codelist-select");
+const datasetSelect =
+  document.querySelector<HTMLSelectElement>("#dataset-select");
+const codelistControl =
+  document.querySelector<HTMLElement>("#codelist-control");
 const entrySearch = document.querySelector<HTMLInputElement>("#entry-search");
 const listHeading = document.querySelector<HTMLElement>("#list-heading");
 const entryCount = document.querySelector<HTMLElement>("#entry-count");
 const issue = document.querySelector<HTMLElement>("#issue");
-const entryResults = document.querySelector<HTMLTableSectionElement>("#entry-results");
+const entryResults =
+  document.querySelector<HTMLTableSectionElement>("#entry-results");
 const emptyState = document.querySelector<HTMLElement>("#empty-state");
 
 if (
   !codelistSelect ||
+  !datasetSelect ||
+  !codelistControl ||
   !entrySearch ||
   !listHeading ||
   !entryCount ||
@@ -35,10 +49,12 @@ codelistSelect.value = "27";
 issue.textContent = `Codelists issue ${metadata.issue}`;
 
 function renderEntries() {
+  const isThema = datasetSelect.value === "thema";
+  codelistControl.hidden = isThema;
   const codelistNumber = Number(codelistSelect.value);
-  const codelist = getCodelist(codelistNumber);
+  const codelist = isThema ? undefined : getCodelist(codelistNumber);
 
-  if (!codelist) {
+  if (!isThema && !codelist) {
     listHeading.textContent = "Codelist not found";
     entryCount.textContent = "";
     entryResults.replaceChildren();
@@ -47,13 +63,20 @@ function renderEntries() {
   }
 
   const query = entrySearch.value.trim().toLowerCase();
-  const entries = codelist.entries.filter(
+  const allEntries = isThema ? getThemaEntries() : codelist.entries;
+  const entries = allEntries.filter(
     ({ code, heading }) =>
-      code.toLowerCase().includes(query) || heading.toLowerCase().includes(query),
+      code.toLowerCase().includes(query) ||
+      heading.toLowerCase().includes(query),
   );
 
-  listHeading.textContent = `${codelist.number} — ${codelist.heading}`;
-  entryCount.textContent = `${entries.length} of ${codelist.entries.length} entries`;
+  listHeading.textContent = isThema
+    ? "Thema subject codes"
+    : `${codelist.number} — ${codelist.heading}`;
+  entryCount.textContent = `${entries.length} of ${allEntries.length} entries`;
+  issue.textContent = isThema
+    ? `Thema ${themaMetadata.version} · updated ${themaMetadata.lastUpdated}`
+    : `Codelists issue ${metadata.issue}`;
   emptyState.hidden = entries.length > 0;
   entryResults.replaceChildren(
     ...entries.map(({ code, heading }) => {
@@ -70,5 +93,6 @@ function renderEntries() {
 }
 
 codelistSelect.addEventListener("change", renderEntries);
+datasetSelect.addEventListener("change", renderEntries);
 entrySearch.addEventListener("input", renderEntries);
 renderEntries();

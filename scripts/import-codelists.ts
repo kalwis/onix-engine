@@ -15,6 +15,12 @@ type SourceCodelist = {
   readonly heading: string;
   readonly entries: readonly SourceEntry[];
 };
+type SourceThemaEntry = {
+  readonly code: string;
+  readonly heading: string;
+  readonly parentCode?: string;
+  readonly note?: string;
+};
 
 const root = resolve(import.meta.dirname, "..");
 const rawDirectory = resolve(root, "data/raw");
@@ -37,6 +43,12 @@ function requiredIssueNumber(value: unknown, description: string): number {
   return value;
 }
 
+function requiredNumber(value: unknown, description: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value))
+    throw new Error(`Missing or invalid ${description}.`);
+  return value;
+}
+
 function optionalIssueNumber(
   value: unknown,
   description: string,
@@ -53,6 +65,24 @@ function optionalString(
   if (typeof value !== "string")
     throw new Error(`Missing or invalid ${description}.`);
   return value || undefined;
+}
+
+function optionalCode(value: unknown, description: string): string | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  if (typeof value !== "string" && typeof value !== "number")
+    throw new Error(`Missing or invalid ${description}.`);
+  const code = String(value);
+  if (!code.trim()) throw new Error(`Missing or invalid ${description}.`);
+  return code;
+}
+
+function requiredDate(value: unknown, description: string): string {
+  if (!isRecord(value)) throw new Error(`Missing or invalid ${description}.`);
+  const text = value["#text"];
+  const date = typeof text === "number" ? String(text) : text;
+  if (typeof date !== "string" || !/^\d{8}$/.test(date))
+    throw new Error(`Missing or invalid ${description}.`);
+  return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
 }
 
 function loadOfficialCodelists(input: unknown): {
@@ -127,6 +157,51 @@ function loadOfficialCodelists(input: unknown): {
   };
 }
 
+function loadOfficialThema(input: unknown): {
+  readonly issue: number;
+  readonly version: string;
+  readonly lastUpdated: string;
+  readonly entries: SourceThemaEntry[];
+} {
+  if (!isRecord(input) || !isRecord(input.CodeList))
+    throw new Error("Official Thema JSON must contain a CodeList object.");
+  const list = input.CodeList;
+  if (requiredIssueNumber(list.CodeListNumber, "Thema CodeListNumber") !== 214)
+    throw new Error("Official Thema JSON must be codelist 214.");
+  const issue = requiredNumber(list.IssueNumber, "Thema IssueNumber");
+  const version = requiredString(list.VersionNumber, "Thema VersionNumber");
+  const lastUpdated = requiredDate(list.LastUpdated, "Thema LastUpdated");
+  if (!isRecord(list.ThemaCodes) || !Array.isArray(list.ThemaCodes.Code))
+    throw new Error(
+      "Official Thema JSON must contain a ThemaCodes Code array.",
+    );
+
+  const codes = new Set<string>();
+  const entries = list.ThemaCodes.Code.map((value, entryIndex) => {
+    const prefix = `Thema entry ${entryIndex + 1}`;
+    if (!isRecord(value)) throw new Error(`Invalid ${prefix}.`);
+    const code = requiredString(value.CodeValue, `${prefix} code`);
+    if (codes.has(code)) throw new Error(`Duplicate Thema code ${code}.`);
+    codes.add(code);
+    const parentCode = optionalCode(value.CodeParent, `${prefix} parent code`);
+    const note = optionalString(value.CodeNotes, `${prefix} notes`);
+    return {
+      code,
+      heading: requiredString(value.CodeDescription, `${prefix} heading`),
+      ...(parentCode === undefined ? {} : { parentCode }),
+      ...(note === undefined ? {} : { note }),
+    };
+  });
+  if (entries.length === 0) throw new Error("No Thema entries were imported.");
+  for (const entry of entries) {
+    if (entry.parentCode && !codes.has(entry.parentCode))
+      throw new Error(
+        `Thema code ${entry.code} references missing parent ${entry.parentCode}.`,
+      );
+  }
+  return { issue, version, lastUpdated, entries };
+}
+
 async function main(): Promise<void> {
   const files = await readdir(rawDirectory);
   const jsonFiles = files.filter((file) =>
@@ -175,7 +250,45 @@ async function main(): Promise<void> {
     resolve(sourceDirectory, "metadata.ts"),
     `// Generated from ${basename(filename)}. Do not edit manually.\nimport type { CodelistMetadata } from "../types/metadata.js";\n\nexport const metadata: CodelistMetadata = ${JSON.stringify(metadata)};\n`,
   );
-  console.log(`Generated ${codelists.length} codelists from Issue ${issue}.`);
+
+  const themaFiles = files.filter((file) =>
+    /^\d{8}_Thema_v[\d.]+_en\.json$/i.test(file),
+  );
+  if (themaFiles.length !== 1)
+    throw new Error(
+      "Expected exactly one official <date>_Thema_v<version>_en.json file in data/raw/.",
+    );
+  const themaFilename = themaFiles[0];
+  const thema = loadOfficialThema(
+    JSON.parse(
+      await readFile(resolve(rawDirectory, themaFilename), "utf8"),
+    ) as unknown,
+  );
+  const themaMetadata = {
+    issue: thema.issue,
+    version: thema.version,
+    lastUpdated: thema.lastUpdated,
+    generatedAt,
+  };
+  await writeFile(
+    resolve(generatedDirectory, "thema.json"),
+    `${JSON.stringify(thema.entries)}\n`,
+  );
+  await writeFile(
+    resolve(generatedDirectory, "thema-metadata.json"),
+    `${JSON.stringify(themaMetadata)}\n`,
+  );
+  await writeFile(
+    resolve(sourceDirectory, "thema.ts"),
+    `// Generated from ${basename(themaFilename)}. Do not edit manually.\nimport type { ThemaEntry } from "../types/thema.js";\n\nexport const themaEntries: readonly ThemaEntry[] = ${JSON.stringify(thema.entries)};\nexport const themaEntriesByCode = new Map<string, ThemaEntry>(themaEntries.map((entry) => [entry.code, entry]));\nexport const themaEntriesByParent = new Map<string | undefined, ThemaEntry[]>();\nfor (const entry of themaEntries) {\n  const children = themaEntriesByParent.get(entry.parentCode);\n  if (children) children.push(entry);\n  else themaEntriesByParent.set(entry.parentCode, [entry]);\n}\n`,
+  );
+  await writeFile(
+    resolve(sourceDirectory, "thema-metadata.ts"),
+    `// Generated from ${basename(themaFilename)}. Do not edit manually.\nimport type { ThemaMetadata } from "../types/thema.js";\n\nexport const themaMetadata: ThemaMetadata = ${JSON.stringify(themaMetadata)};\n`,
+  );
+  console.log(
+    `Generated ${codelists.length} codelists from Issue ${issue} and ${thema.entries.length} Thema entries from ${thema.version}.`,
+  );
 }
 
 await main();

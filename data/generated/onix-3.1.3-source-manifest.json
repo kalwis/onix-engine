@@ -1,0 +1,74 @@
+{
+  "onixRelease": "3.1.3",
+  "schemaVersion": "3.1.3.74.0",
+  "codelistIssue": 74,
+  "canonicalRoots": [
+    "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_BookProduct_3.1_reference_strict.xsd",
+    "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_BookProduct_3.1_short_strict.xsd"
+  ],
+  "includedModules": [
+    "ONIX_BookProduct_CodeLists.xsd",
+    "ONIX_XHTML_Subset.xsd"
+  ],
+  "samples": [
+    "Onix3.1sample_refnames.xml",
+    "Onix3.1sample_refnames_blockupdate.xml",
+    "Onix3.1sample_shorttags.xml",
+    "Onix3.1sample_shorttags_blockupdate.xml"
+  ],
+  "legacyInputs": [
+    "ONIX_BookProduct_3.1_reference.xsd",
+    "ONIX_BookProduct_3.1_short.xsd",
+    "scripts/switch-onix-3.0-tagnames-2.0_v1.3.xsl"
+  ],
+  "files": [
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/20180212 Changes for XSD 1.1 strict schema.pdf",
+      "sha256": "cda6b669fb447ec8725fa6f5d3652f639896bd53343db6a64a4925d490dcf1ef"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_BookProduct_3.1_reference.xsd",
+      "sha256": "d87cdb4aa2ba62a0c9192dcde363e3819720717a8086dfd7724d9e3a200b0d64"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_BookProduct_3.1_reference_strict.xsd",
+      "sha256": "1216c7da54f7a3ff8e7345d9967ec1a7f86b4cc4709c1065400abdfefc894d1d"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_BookProduct_3.1_short.xsd",
+      "sha256": "9a97457c186699e27f5ee502379f5f565961f5b6106aafe5d842be7144158a07"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_BookProduct_3.1_short_strict.xsd",
+      "sha256": "b3beb5c683e9d60d914eceda8963a40b6c00e65dc34e276784d84b58b96a792b"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_BookProduct_CodeLists.xsd",
+      "sha256": "ba948e26c1bf99ef2d633e17ca7c4767ec629571048feb2ea3ba6428745a3b58"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/ONIX_XHTML_Subset.xsd",
+      "sha256": "5192454649d7b32a2b3dde20dcb63f6fc888b9b9e6227d56e981c283c73d1f1c"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/Onix3.1sample_refnames.xml",
+      "sha256": "79eed8e1c7865f8c8408e4ebeb436b9b5af1eda657b3514407f667d974075473"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/Onix3.1sample_refnames_blockupdate.xml",
+      "sha256": "e08cf037b48e076d8e51870b48992085888dedecae97455bbcf5c2feacda1f53"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/Onix3.1sample_shorttags.xml",
+      "sha256": "06b69e34c6a96470ab0d66da2cd5cd39e7ac42c73a15450789f3db19e77953ee"
+    },
+    {
+      "path": "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/Onix3.1sample_shorttags_blockupdate.xml",
+      "sha256": "65f567b88c675a05c718ea04bf9842a903e9f182cfe638096bbd8813652f1996"
+    },
+    {
+      "path": "scripts/switch-onix-3.0-tagnames-2.0_v1.3.xsl",
+      "sha256": "1f7d4334c72f558e969ab98a92366169bb2ac5c10dd675a5a1c3a6e27c106727"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
-  "name": "onix-codelists",
+  "name": "onix-engine",
   "version": "0.1.0",
-  "description": "Programmatic access to ONIX for Books codelists.",
+  "description": "ONIX for Books codelists and schema foundation.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.17.0",
@@ -18,14 +18,16 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "generate": "tsx scripts/import-codelists.ts",
-    "validate:data": "tsx scripts/validate-codelists.ts",
+    "generate": "tsx scripts/import-codelists.ts && tsx scripts/import-onix-schema.ts",
+    "generate:schema": "tsx scripts/import-onix-schema.ts",
+    "validate:data": "tsx scripts/validate-codelists.ts && tsx scripts/validate-onix-schema.ts",
     "build": "tsup",
     "demo": "vite examples/codelist-browser",
     "test": "vitest run",
@@ -41,6 +43,7 @@
     "eslint-config-prettier": "^10.1.1",
     "globals": "^16.0.0",
     "prettier": "^3.5.3",
+    "saxes": "^6.0.0",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
@@ -53,5 +56,7 @@
     "books",
     "codelists",
     "editeur"
-  ]
+  ],
+  "homepage": "https://github.com/kisara/onix-engine",
+  "notice": "NOTICE"
 }

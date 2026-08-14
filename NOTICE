@@ -1,0 +1,9 @@
+ONIX Engine project code is licensed under the MIT License; see LICENSE.
+
+The ONIX for Books schemas, codelists, and derived schema data in this project
+remain copyright © EDItEUR. They are used under the EDItEUR licence,
+https://doi.org/10.4400/nwgj. EDItEUR is the authority for the ONIX standard.
+
+This project does not grant permission to modify or redistribute EDItEUR source
+material beyond the applicable EDItEUR licence, and does not represent arbitrary
+XML extensions as ONIX standards-compliant.

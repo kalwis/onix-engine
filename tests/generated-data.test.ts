@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { codelists } from "../src/generated/codelists.js";
 import { metadata } from "../src/generated/metadata.js";
+import { themaEntries } from "../src/generated/thema.js";
+import { themaMetadata } from "../src/generated/thema-metadata.js";
 
 describe("generated ONIX data", () => {
   it("has valid metadata", () => {
@@ -50,6 +52,43 @@ describe("generated ONIX data", () => {
         heading: "Religious text identifier",
         entries: [],
       }),
+    );
+  });
+});
+
+describe("generated Thema data", () => {
+  it("has valid metadata", () => {
+    expect(themaMetadata).toMatchObject({
+      issue: 1.6,
+      version: "v1.6.0",
+      lastUpdated: "2025-04-10",
+    });
+    expect(new Date(themaMetadata.generatedAt).toISOString()).toBe(
+      themaMetadata.generatedAt,
+    );
+  });
+
+  it("has complete, unique codes with valid parents", () => {
+    expect(themaEntries).toHaveLength(9187);
+    const codes = new Set(themaEntries.map((entry) => entry.code));
+    expect(codes.size).toBe(themaEntries.length);
+    for (const entry of themaEntries) {
+      expect(entry.code).not.toHaveLength(0);
+      expect(entry.heading).not.toHaveLength(0);
+      if (entry.parentCode) expect(codes.has(entry.parentCode)).toBe(true);
+    }
+  });
+
+  it("preserves hierarchy and usage notes", () => {
+    expect(themaEntries).toContainEqual(
+      expect.objectContaining({
+        code: "AB",
+        parentCode: "A",
+        heading: "The arts: general topics",
+      }),
+    );
+    expect(themaEntries.find((entry) => entry.code === "A")?.note).toContain(
+      "Use all A* codes",
     );
   });
 });
