@@ -3,6 +3,7 @@ import {
   createValidationReport,
   validateOnixCodes,
 } from "./validate-onix-codes.js";
+import { identifierContextRegistry } from "../generated/semantic-manifest.js";
 import type {
   OnixCodeInput,
   OnixXmlValidationReport,
@@ -35,12 +36,26 @@ interface ProductState {
     subjects: { schemeCode: string; code: string; isMain?: boolean }[];
     productComposition?: string;
     productForm?: string;
+    identifierGroups: {
+      context: string;
+      path: string;
+      identifiers: { typeCode: string; value: string; typeName?: string }[];
+    }[];
   };
   locations: Map<string, SourceLocation>;
   subject?: {
     schemeCode?: string;
     code?: string;
     isMain?: boolean;
+    locations: Map<string, SourceLocation>;
+  };
+  identifier?: {
+    context: string;
+    path: string;
+    parentPath: string;
+    typeCode?: string;
+    value?: string;
+    typeName?: string;
     locations: Map<string, SourceLocation>;
   };
 }
@@ -89,11 +104,23 @@ export function validateOnixXml(
     }
     if (local === "Product" || local === "product")
       product = {
-        input: { productFormDetails: [], subjects: [] },
+        input: { productFormDetails: [], subjects: [], identifierGroups: [] },
         locations: new Map(),
       };
     if (product && (local === "Subject" || local === "subject"))
       product.subject = { locations: new Map() };
+    if (product) {
+      const context = identifierContextRegistry.find(
+        (entry) => entry.context === local || entry.shortName === local,
+      );
+      if (context)
+        product.identifier = {
+          context: context.context,
+          path,
+          parentPath: parent?.path ?? "",
+          locations: new Map(),
+        };
+    }
   });
   parser.on("text", (value: string) => {
     const node = stack.at(-1);
@@ -135,6 +162,30 @@ export function validateOnixXml(
         }
       }
     }
+    if (product.identifier && text) {
+      const context = identifierContextRegistry.find(
+        (entry) => entry.context === product?.identifier?.context,
+      );
+      const location: SourceLocation = {
+        line: parser.line + 1,
+        column: parser.column + 1,
+        xmlPath: node.path,
+        productIndex: products.length,
+      };
+      if (
+        node.local === context?.typeName ||
+        node.local === context?.typeShortName
+      ) {
+        product.identifier.typeCode = text;
+        product.identifier.locations.set("typeCode", location);
+      } else if (node.local === "IDTypeName" || node.local === "b233") {
+        product.identifier.typeName = text;
+        product.identifier.locations.set("typeName", location);
+      } else if (node.local === "IDValue" || node.local === "b244") {
+        product.identifier.value = text;
+        product.identifier.locations.set("value", location);
+      }
+    }
     if (
       (node.local === "Subject" || node.local === "subject") &&
       product.subject
@@ -151,6 +202,42 @@ export function validateOnixXml(
           product.locations.set(`/subjects/${index}/${field}`, location);
       }
       product.subject = undefined;
+    }
+    if (
+      product.identifier &&
+      (node.local === product.identifier.context ||
+        identifierContextRegistry.find(
+          (entry) => entry.context === product?.identifier?.context,
+        )?.shortName === node.local)
+    ) {
+      const identifier = product.identifier;
+      if (identifier.typeCode !== undefined && identifier.value !== undefined) {
+        const groupPath = `/identifierGroups/${product.input.identifierGroups.length}`;
+        // A parent may repeat one identifier context; preserve that repetition
+        // as a single validation group so tuple uniqueness is meaningful.
+        let group = product.input.identifierGroups.find(
+          (candidate) =>
+            candidate.context === identifier.context &&
+            candidate.path.endsWith(`:${identifier.parentPath}`),
+        );
+        if (!group) {
+          group = {
+            context: identifier.context,
+            path: `${groupPath}:${identifier.parentPath}`,
+            identifiers: [],
+          };
+          product.input.identifierGroups.push(group);
+        }
+        const index = group.identifiers.length;
+        group.identifiers.push({
+          typeCode: identifier.typeCode,
+          value: identifier.value,
+          ...(identifier.typeName ? { typeName: identifier.typeName } : {}),
+        });
+        for (const [field, location] of identifier.locations)
+          product.locations.set(`${group.path}/${index}/${field}`, location);
+      }
+      product.identifier = undefined;
     }
     if (node.local === "Product" || node.local === "product") {
       products.push(product);

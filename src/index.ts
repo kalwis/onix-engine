@@ -21,6 +21,11 @@ export {
   semanticCodelistRuleAudit,
   semanticManifest,
 } from "./core/semantic-manifest.js";
+export {
+  identifierContextRegistry,
+  semanticCodelistNoteAudit,
+  semanticSchemaSourceIds,
+} from "./generated/semantic-manifest.js";
 export { metadata } from "./generated/metadata.js";
 export { themaMetadata } from "./generated/thema-metadata.js";
 export type { Codelist, CodelistEntry } from "./types/codelist.js";
@@ -28,6 +33,8 @@ export type { CodelistMetadata } from "./types/metadata.js";
 export type { ThemaEntry, ThemaMetadata } from "./types/thema.js";
 export type {
   OnixCodeInput,
+  OnixIdentifier,
+  OnixIdentifierGroup,
   OnixSubjectAssignment,
   OnixXmlValidationReport,
   SemanticManifestRule,

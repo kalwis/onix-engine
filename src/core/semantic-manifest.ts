@@ -1,11 +1,11 @@
 import type { SemanticManifestRule } from "../types/validation.js";
 import {
-  productFormDetailRuleAudit,
+  semanticCodelistNoteAudit,
   productFormDetailRules,
 } from "../generated/semantic-manifest.js";
 
 /** Codelist notes reviewed by the deterministic extractor, including gaps. */
-export const semanticCodelistRuleAudit = productFormDetailRuleAudit;
+export const semanticCodelistRuleAudit = semanticCodelistNoteAudit;
 
 const manuallyReviewedDetails = new Set([
   "A101",

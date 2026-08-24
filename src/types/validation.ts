@@ -8,7 +8,7 @@ export interface SourceLocation {
 }
 
 export interface ValidationSource {
-  readonly type: "codelist-note" | "schematron" | "thema";
+  readonly type: "codelist-note" | "schematron" | "thema" | "schema";
   readonly list?: number;
   readonly code?: string;
   readonly text?: string;
@@ -32,11 +32,27 @@ export interface OnixSubjectAssignment {
   readonly isMain?: boolean;
 }
 
+/** A repeatable ONIX <...Identifier> composite in one parent context. */
+export interface OnixIdentifier {
+  readonly typeCode: string;
+  readonly value: string;
+  readonly typeName?: string;
+}
+
+export interface OnixIdentifierGroup {
+  /** Reference-tag composite name, eg ProductIdentifier. */
+  readonly context: string;
+  /** Canonical path for this repeated composite, eg /productIdentifiers. */
+  readonly path: string;
+  readonly identifiers: readonly OnixIdentifier[];
+}
+
 export interface OnixCodeInput {
   readonly productComposition?: string;
   readonly productForm?: string;
   readonly productFormDetails?: readonly string[];
   readonly subjects?: readonly OnixSubjectAssignment[];
+  readonly identifierGroups?: readonly OnixIdentifierGroup[];
 }
 
 export interface ValidationVersions {

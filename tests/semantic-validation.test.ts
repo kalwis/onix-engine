@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   semanticManifest,
   semanticCodelistRuleAudit,
+  identifierContextRegistry,
   validateOnixCodes,
   validateOnixField,
   validateOnixXml,
@@ -158,6 +159,35 @@ describe("semantic ONIX validation", () => {
       expect.objectContaining({ code: "B134", extraction: "unsupported" }),
     );
   });
+
+  it("covers every identifier composite and validates its canonical tuples", () => {
+    expect(identifierContextRegistry.length).toBeGreaterThan(20);
+    expect(identifierContextRegistry).toContainEqual(
+      expect.objectContaining({ context: "ProductIdentifier", typeList: 5 }),
+    );
+    const report = validateOnixCodes({
+      identifierGroups: [
+        {
+          context: "ProductIdentifier",
+          path: "/productIdentifiers",
+          identifiers: [
+            { typeCode: "01", value: "SKU-1" },
+            { typeCode: "15", value: "9780306406158" },
+            { typeCode: "15", value: "9780306406158" },
+            { typeCode: "99", value: "x" },
+          ],
+        },
+      ],
+    });
+    expect(report.findings.map((item) => item.ruleId)).toEqual(
+      expect.arrayContaining([
+        "ONIX-IDENTIFIER-PROPRIETARY-NAME",
+        "ONIX-IDENTIFIER-DUPLICATE",
+        "ONIX-IDENTIFIER-VALUE",
+        "ONIX-5-IDENTIFIER-TYPE",
+      ]),
+    );
+  });
 });
 
 describe("ONIX XML adapter", () => {
@@ -187,5 +217,16 @@ describe("ONIX XML adapter", () => {
     expect(
       validateOnixXml('<ONIXMessage release="3.0"/>').unsupportedMessage,
     ).toBeDefined();
+  });
+
+  it("extracts identifiers from reference and short-tag XML", () => {
+    const reference =
+      '<ONIXMessage release="3.1"><Product><ProductIdentifier><ProductIDType>15</ProductIDType><IDValue>9780306406158</IDValue></ProductIdentifier></Product></ONIXMessage>';
+    const short =
+      '<ONIXmessage release="3.1"><product><productidentifier><b221>15</b221><b244>9780306406158</b244></productidentifier></product></ONIXmessage>';
+    for (const xml of [reference, short])
+      expect(
+        validateOnixXml(xml).findings.map((item) => item.ruleId),
+      ).toContain("ONIX-IDENTIFIER-VALUE");
   });
 });
