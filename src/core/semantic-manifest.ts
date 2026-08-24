@@ -2,10 +2,14 @@ import type { SemanticManifestRule } from "../types/validation.js";
 import {
   semanticCodelistNoteAudit,
   productFormDetailRules,
+  themaSemanticRuleAudit as generatedThemaSemanticRuleAudit,
 } from "../generated/semantic-manifest.js";
 
 /** Codelist notes reviewed by the deterministic extractor, including gaps. */
 export const semanticCodelistRuleAudit = semanticCodelistNoteAudit;
+
+/** Pinned Thema prose retained as non-enforcing candidates for review. */
+export const themaSemanticRuleAudit = generatedThemaSemanticRuleAudit;
 
 const manuallyReviewedDetails = new Set([
   "A101",

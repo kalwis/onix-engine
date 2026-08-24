@@ -11,6 +11,10 @@ export { getThemaEntry } from "./core/get-thema-entry.js";
 export { getThemaHeading } from "./core/get-thema-heading.js";
 export { hasThemaCode } from "./core/has-thema-code.js";
 export {
+  isThemaCodeAssignable,
+  themaNonAssignableCodes,
+} from "./core/thema-assignability.js";
+export {
   validateOnixCodes,
   validateOnixField,
   validateProductForm,
@@ -20,6 +24,7 @@ export { validateOnixXml } from "./core/validate-onix-xml.js";
 export {
   semanticCodelistRuleAudit,
   semanticManifest,
+  themaSemanticRuleAudit,
 } from "./core/semantic-manifest.js";
 export {
   identifierContextRegistry,
@@ -38,6 +43,7 @@ export type {
   OnixSubjectAssignment,
   OnixXmlValidationReport,
   SemanticManifestRule,
+  ThemaSemanticRuleAuditEntry,
   SourceLocation,
   ValidateOnixCodesOptions,
   ValidateOnixXmlOptions,

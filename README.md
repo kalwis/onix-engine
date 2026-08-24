@@ -100,7 +100,14 @@ pnpm demo:validation
 ```
 
 The validation demo shows each field's exact-path findings alongside the full
-validation report grouped by canonical path.
+validation report grouped by canonical path, with repeatable Thema subject and
+qualifier assignments restricted to the selected List 27 scheme.
+
+`isThemaCodeAssignable(code)` and `themaNonAssignableCodes` expose a curated,
+immutable v1.6 assignment policy for codes that the pinned Thema notes say not
+to assign directly. This list is hand-maintained: update it only after an
+explicit review of the pinned Thema notes; it is not derived during generation
+or at runtime.
 
 ## Updating the source data
 

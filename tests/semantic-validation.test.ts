@@ -2,12 +2,32 @@ import { describe, expect, it } from "vitest";
 import {
   semanticManifest,
   semanticCodelistRuleAudit,
+  themaSemanticRuleAudit,
   identifierContextRegistry,
+  isThemaCodeAssignable,
   validateOnixCodes,
   validateOnixField,
   validateOnixXml,
   validateThemaAssignments,
+  themaNonAssignableCodes,
 } from "../src/index.js";
+import { themaEntries } from "../src/generated/thema.js";
+
+function themaSchemeForCode(code: string): string {
+  return code.startsWith("1")
+    ? "94"
+    : code.startsWith("2")
+      ? "95"
+      : code.startsWith("3")
+        ? "96"
+        : code.startsWith("4")
+          ? "97"
+          : code.startsWith("5")
+            ? "98"
+            : code.startsWith("6")
+              ? "99"
+              : "93";
+}
 
 describe("semantic ONIX validation", () => {
   it("groups findings by immutable canonical path without clean paths", () => {
@@ -116,7 +136,7 @@ describe("semantic ONIX validation", () => {
     expect(
       validateThemaAssignments([
         { schemeCode: "93", code: "AB", isMain: true },
-        { schemeCode: "94", code: "1", isMain: true },
+        { schemeCode: "94", code: "1A" },
       ]).findings,
     ).toEqual([]);
     expect(
@@ -125,6 +145,214 @@ describe("semantic ONIX validation", () => {
         { schemeCode: "93", code: "AC", isMain: true },
       ]).findings.map((item) => item.ruleId),
     ).toContain("ONIX-SUBJECT-MULTIPLE-MAIN");
+  });
+
+  it("exports the reviewed immutable v1.6 non-assignable code set", () => {
+    expect(themaNonAssignableCodes).toEqual([
+      "1",
+      "1Q",
+      "2",
+      "3",
+      "4",
+      "5",
+      "5A",
+      "5T",
+      "5Y",
+      "6",
+      "C",
+      "D",
+      "F",
+      "FY",
+      "G",
+      "L",
+      "N",
+      "P",
+      "Q",
+      "R",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "YFZ",
+      "6A",
+      "6B",
+      "6C",
+      "6D",
+      "6E",
+      "6F",
+      "6G",
+      "6H",
+      "6J",
+      "6K",
+      "6L",
+      "6M",
+      "6N",
+      "6P",
+      "6Q",
+      "6R",
+      "6S",
+      "6SX",
+      "6T",
+      "6U",
+      "6V",
+      "6W",
+      "6X",
+    ]);
+    expect(Object.isFrozen(themaNonAssignableCodes)).toBe(true);
+    expect(isThemaCodeAssignable("C")).toBe(false);
+    expect(isThemaCodeAssignable("6A")).toBe(false);
+    expect(isThemaCodeAssignable("not-a-code")).toBe(false);
+    expect(isThemaCodeAssignable("A")).toBe(true);
+    expect(isThemaCodeAssignable("S")).toBe(true);
+  });
+
+  it("enforces curated assignability only for Thema schemes", () => {
+    for (const code of ["C", "1", "FY", "5A", "6A"])
+      expect(
+        validateThemaAssignments([
+          { schemeCode: themaSchemeForCode(code), code },
+        ]).findings,
+      ).toContainEqual(
+        expect.objectContaining({
+          ruleId: "THEMA-CODE-NON-ASSIGNABLE",
+          path: "/subjects/0/code",
+        }),
+      );
+    expect(
+      validateThemaAssignments([{ schemeCode: "93", code: "A" }]).findings,
+    ).toEqual([]);
+    expect(
+      validateThemaAssignments([{ schemeCode: "93", code: "S" }]).findings,
+    ).toEqual([]);
+    expect(
+      validateThemaAssignments([{ schemeCode: "10", code: "ABC" }]).findings,
+    ).toContainEqual(
+      expect.objectContaining({
+        ruleId: "THEMA-SCHEME",
+        path: "/subjects/0/schemeCode",
+      }),
+    );
+    expect(
+      validateOnixCodes({ subjects: [{ schemeCode: "24", code: "ABC" }] })
+        .findings,
+    ).toEqual([]);
+  });
+
+  it("applies curated Thema assignment pairs at the later code path", () => {
+    for (const assignments of [
+      [
+        { schemeCode: "93", code: "FP" },
+        { schemeCode: "93", code: "FRX" },
+      ],
+      [
+        { schemeCode: "93", code: "FRX" },
+        { schemeCode: "93", code: "FP" },
+      ],
+      [
+        { schemeCode: "93", code: "FXD" },
+        { schemeCode: "93", code: "FRB" },
+      ],
+      [
+        { schemeCode: "93", code: "FRB" },
+        { schemeCode: "93", code: "FXD" },
+      ],
+      [
+        { schemeCode: "98", code: "5AV" },
+        { schemeCode: "93", code: "YF" },
+      ],
+      [
+        { schemeCode: "93", code: "YF" },
+        { schemeCode: "98", code: "5AV" },
+      ],
+    ])
+      expect(validateThemaAssignments(assignments).findings).toContainEqual(
+        expect.objectContaining({
+          ruleId: "THEMA-MUTUALLY-EXCLUSIVE",
+          path: "/subjects/1/code",
+        }),
+      );
+  });
+
+  it("limits main subjects and curated main-category restrictions", () => {
+    expect(
+      validateOnixCodes({
+        subjects: [{ schemeCode: "94", code: "1A", isMain: true }],
+      }).findings,
+    ).toContainEqual(
+      expect.objectContaining({
+        ruleId: "ONIX-SUBJECT-MAIN-SCHEME",
+        path: "/subjects/0/isMain",
+      }),
+    );
+    expect(
+      validateOnixCodes({
+        subjects: [{ schemeCode: "10", code: "FIC000000", isMain: true }],
+      }).findings,
+    ).toEqual([]);
+    for (const code of ["FX", "FXD", "FYR", "FYT", "YFZT"])
+      expect(
+        validateOnixCodes({
+          subjects: [{ schemeCode: "93", code, isMain: true }],
+        }).findings,
+      ).toContainEqual(
+        expect.objectContaining({
+          ruleId: "THEMA-MAIN-CATEGORY",
+          path: "/subjects/0/code",
+        }),
+      );
+  });
+
+  it("requires a primary Thema subject when qualifiers are supplied", () => {
+    expect(
+      validateThemaAssignments([{ schemeCode: "94", code: "1" }]).findings,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: "THEMA-QUALIFIER-WITHOUT-PRIMARY",
+          path: "/subjects/0/schemeCode",
+        }),
+      ]),
+    );
+    expect(
+      validateThemaAssignments([
+        { schemeCode: "93", code: "AB" },
+        { schemeCode: "94", code: "1A" },
+      ]).findings,
+    ).toEqual([]);
+    expect(validateThemaAssignments([]).findings).toEqual([]);
+  });
+
+  it("keeps demo-style subject findings on their canonical indexed paths", () => {
+    const valid = validateOnixCodes({
+      subjects: [
+        { schemeCode: "93", code: "AB", isMain: true },
+        { schemeCode: "94", code: "1" },
+      ],
+    });
+    expect(valid.findings).not.toContainEqual(
+      expect.objectContaining({ ruleId: "THEMA-QUALIFIER-WITHOUT-PRIMARY" }),
+    );
+
+    const invalid = validateOnixCodes({
+      subjects: [
+        { schemeCode: "94", code: "AB" },
+        { schemeCode: "94", code: "AB" },
+      ],
+    });
+    expect(invalid.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: "THEMA-SCHEME-ELIGIBILITY",
+          path: "/subjects/0/schemeCode",
+        }),
+        expect.objectContaining({
+          ruleId: "ONIX-SUBJECT-DUPLICATE",
+          path: "/subjects/1",
+        }),
+      ]),
+    );
   });
 
   it("makes ancestor checking an opt-in best-practice policy", () => {
@@ -157,6 +385,30 @@ describe("semantic ONIX validation", () => {
     );
     expect(semanticCodelistRuleAudit).toContainEqual(
       expect.objectContaining({ code: "B134", extraction: "unsupported" }),
+    );
+  });
+
+  it("audits every non-empty pinned Thema note without enforcing its prose", () => {
+    expect(themaSemanticRuleAudit).toHaveLength(4059);
+    expect(Object.isFrozen(themaSemanticRuleAudit)).toBe(true);
+    const auditByCode = new Map(
+      themaSemanticRuleAudit.map((entry) => [entry.code, entry]),
+    );
+    for (const entry of themaEntries.filter((entry) => entry.note))
+      expect(auditByCode.get(entry.code)?.rawNote).toBe(entry.note);
+    expect(themaSemanticRuleAudit).toContainEqual(
+      expect.objectContaining({
+        code: "ABA",
+        rawNote: "See also: QDTN",
+        cue: "See also",
+        referencedCodeLikeTokens: expect.arrayContaining(["QDTN"]),
+        classification: "unsupported-candidate",
+        source: expect.objectContaining({
+          type: "thema",
+          version: "v1.6.0",
+          lastUpdated: "2025-04-10",
+        }),
+      }),
     );
   });
 
@@ -228,5 +480,19 @@ describe("ONIX XML adapter", () => {
       expect(
         validateOnixXml(xml).findings.map((item) => item.ruleId),
       ).toContain("ONIX-IDENTIFIER-VALUE");
+  });
+
+  it("normalizes Thema qualifiers from reference and short-tag XML", () => {
+    const reference =
+      '<ONIXMessage release="3.1"><Product><Subject><SubjectSchemeIdentifier>94</SubjectSchemeIdentifier><SubjectCode>1</SubjectCode></Subject></Product></ONIXMessage>';
+    const short =
+      '<ONIXmessage release="3.1"><product><subject><b067>94</b067><b069>1</b069></subject></product></ONIXmessage>';
+    for (const xml of [reference, short])
+      expect(validateOnixXml(xml).findings).toContainEqual(
+        expect.objectContaining({
+          ruleId: "THEMA-QUALIFIER-WITHOUT-PRIMARY",
+          path: "/products/0/subjects/0/schemeCode",
+        }),
+      );
   });
 });

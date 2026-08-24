@@ -3,6 +3,7 @@ import { themaEntriesByCode } from "../generated/thema.js";
 import { themaMetadata } from "../generated/thema-metadata.js";
 import { getCodelistEntry } from "./get-codelist-entry.js";
 import { semanticManifest } from "./semantic-manifest.js";
+import { isThemaCodeAssignable } from "./thema-assignability.js";
 import {
   deprecatedIdentifierTypes,
   identifierContextRegistry,
@@ -244,17 +245,34 @@ function isAncestor(ancestor: string, descendant: string): boolean {
 function validateSubjects(
   subjects: readonly OnixSubjectAssignment[],
   options: ValidateOnixCodesOptions,
+  strictThemaOnly = false,
 ): ValidationFinding[] {
   const findings: ValidationFinding[] = [];
   const seen = new Set<string>();
   const mains = new Set<string>();
+  let firstQualifierIndex: number | undefined;
+  let hasThemaPrimary = false;
   for (const [index, subject] of subjects.entries()) {
     const path = `/subjects/${index}`;
+    const isThemaPrimary = subject.schemeCode === "93";
+    const isThemaQualifier = ["94", "95", "96", "97", "98", "99"].includes(
+      subject.schemeCode,
+    );
+    const isThema = isThemaPrimary || isThemaQualifier;
     if (!getCodelistEntry(27, subject.schemeCode))
       findings.push(
         finding("ONIX-27-SCHEME", `${path}/schemeCode`, listSource(27), {
           schemeCode: subject.schemeCode,
         }),
+      );
+    if (strictThemaOnly && !isThema)
+      findings.push(
+        finding(
+          "THEMA-SCHEME",
+          `${path}/schemeCode`,
+          { type: "thema", text: "Thema uses ONIX Code List 27 schemes 93-99" },
+          { schemeCode: subject.schemeCode },
+        ),
       );
     const key = `${subject.schemeCode}\u0000${subject.code}`;
     if (seen.has(key))
@@ -268,6 +286,18 @@ function validateSubjects(
       );
     seen.add(key);
     if (subject.isMain) {
+      if (subject.schemeCode !== "93" && subject.schemeCode !== "10")
+        findings.push(
+          finding(
+            "ONIX-SUBJECT-MAIN-SCHEME",
+            `${path}/isMain`,
+            listSource(27),
+            {
+              schemeCode: subject.schemeCode,
+              allowedSchemeCodes: ["10", "93"],
+            },
+          ),
+        );
       if (mains.has(subject.schemeCode))
         findings.push(
           finding(
@@ -279,7 +309,10 @@ function validateSubjects(
         );
       mains.add(subject.schemeCode);
     }
-    if (subject.schemeCode >= "93" && subject.schemeCode <= "99") {
+    if (isThemaPrimary) hasThemaPrimary = true;
+    if (isThemaQualifier && firstQualifierIndex === undefined)
+      firstQualifierIndex = index;
+    if (isThemaPrimary || isThemaQualifier) {
       const entry = themaEntriesByCode.get(subject.code);
       if (!entry)
         findings.push(
@@ -291,6 +324,15 @@ function validateSubjects(
           ),
         );
       else {
+        if (!isThemaCodeAssignable(subject.code))
+          findings.push(
+            finding(
+              "THEMA-CODE-NON-ASSIGNABLE",
+              `${path}/code`,
+              { type: "thema", text: "Curated Thema v1.6 assignment policy" },
+              { code: subject.code, schemeCode: subject.schemeCode },
+            ),
+          );
         const root =
           entry.code === "1" ||
           entry.code === "2" ||
@@ -315,9 +357,38 @@ function validateSubjects(
               },
             ),
           );
+        if (
+          subject.isMain &&
+          isThemaPrimary &&
+          (subject.code.startsWith("FX") ||
+            ["FYR", "FYT", "YFZT"].includes(subject.code))
+        )
+          findings.push(
+            finding(
+              "THEMA-MAIN-CATEGORY",
+              `${path}/code`,
+              {
+                type: "thema",
+                text: "Curated Thema v1.6 main-category policy",
+              },
+              { code: subject.code },
+            ),
+          );
       }
     }
   }
+  if (firstQualifierIndex !== undefined && !hasThemaPrimary)
+    findings.push(
+      finding(
+        "THEMA-QUALIFIER-WITHOUT-PRIMARY",
+        `/subjects/${firstQualifierIndex}/schemeCode`,
+        {
+          type: "thema",
+          text: "Thema qualifiers require a scheme 93 primary Thema subject",
+        },
+        { qualifierSchemeCode: subjects[firstQualifierIndex]!.schemeCode },
+      ),
+    );
   if (options.rejectAncestorDescendant)
     for (let i = 0; i < subjects.length; i++)
       for (let j = i + 1; j < subjects.length; j++) {
@@ -342,6 +413,31 @@ function validateSubjects(
             ),
           );
       }
+  for (let i = 0; i < subjects.length; i++)
+    for (let j = i + 1; j < subjects.length; j++) {
+      const first = subjects[i]!;
+      const second = subjects[j]!;
+      const bothThema =
+        ["93", "94", "95", "96", "97", "98", "99"].includes(first.schemeCode) &&
+        ["93", "94", "95", "96", "97", "98", "99"].includes(second.schemeCode);
+      const conflicts =
+        bothThema &&
+        ((new Set([first.code, second.code]).has("FP") &&
+          new Set([first.code, second.code]).has("FRX")) ||
+          (first.code === "FXD" && second.code.startsWith("FR")) ||
+          (second.code === "FXD" && first.code.startsWith("FR")) ||
+          (first.code === "5AV" && second.code.startsWith("Y")) ||
+          (second.code === "5AV" && first.code.startsWith("Y")));
+      if (conflicts)
+        findings.push(
+          finding(
+            "THEMA-MUTUALLY-EXCLUSIVE",
+            `/subjects/${j}/code`,
+            { type: "thema", text: "Curated Thema v1.6 assignment policy" },
+            { firstCode: first.code, secondCode: second.code },
+          ),
+        );
+    }
   return findings;
 }
 
@@ -475,5 +571,5 @@ export function validateThemaAssignments(
   assignments: readonly OnixSubjectAssignment[],
   options: ValidateOnixCodesOptions = {},
 ): ValidationReport {
-  return validateOnixCodes({ subjects: assignments }, options);
+  return createValidationReport(validateSubjects(assignments, options, true));
 }

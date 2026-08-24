@@ -21,7 +21,10 @@
           <div class="panel-heading">
             <div>
               <h2 id="draft-heading">Product code draft</h2>
-              <p>Suggestions come from the applicable ONIX codelists.</p>
+              <p>
+                Suggestions come from the applicable ONIX codelists. Thema codes
+                are restricted by the selected List 27 scheme.
+              </p>
             </div>
           </div>
 
@@ -58,6 +61,19 @@
               <button id="add-detail" type="button">Add detail</button>
             </div>
             <div id="detail-fields"></div>
+
+            <div class="details-heading">
+              <div>
+                <h3>Thema subject assignments</h3>
+                <p>
+                  Pick a List 27 Thema scheme first, then a code belonging to
+                  that scheme. The initial qualifier-only assignment
+                  intentionally shows the primary-subject requirement.
+                </p>
+              </div>
+              <button id="add-subject" type="button">Add subject</button>
+            </div>
+            <div id="subject-fields"></div>
           </form>
 
           <datalist id="product-composition-options"></datalist>

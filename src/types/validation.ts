@@ -103,3 +103,20 @@ export interface SemanticManifestRule {
   readonly enforcement: "error" | "warning" | "none";
   readonly predicate: Readonly<Record<string, unknown>>;
 }
+
+/** A lexical, non-enforcing candidate extracted from pinned Thema prose. */
+export interface ThemaSemanticRuleAuditEntry {
+  readonly code: string;
+  readonly rawNote: string;
+  readonly source: Readonly<{
+    readonly type: "thema";
+    readonly code: string;
+    readonly version: string;
+    readonly issue: number;
+    readonly lastUpdated: string;
+    readonly file: string;
+  }>;
+  readonly cue: "Use with" | "Prefer" | "See also" | "other";
+  readonly referencedCodeLikeTokens: readonly string[];
+  readonly classification: "unsupported-candidate";
+}
