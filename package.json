@@ -1,6 +1,6 @@
 {
   "name": "onix-engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ONIX for Books codelists and schema foundation.",
   "license": "MIT",
   "type": "module",
@@ -25,11 +25,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "generate": "tsx scripts/import-codelists.ts && tsx scripts/import-onix-schema.ts",
+    "generate": "tsx scripts/import-codelists.ts && tsx scripts/import-onix-schema.ts && tsx scripts/generate-semantic-manifest.ts",
+    "generate:semantics": "tsx scripts/generate-semantic-manifest.ts",
     "generate:schema": "tsx scripts/import-onix-schema.ts",
     "validate:data": "tsx scripts/validate-codelists.ts && tsx scripts/validate-onix-schema.ts",
     "build": "tsup",
     "demo": "vite examples/codelist-browser",
+    "demo:validation": "vite examples/validation-browser",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

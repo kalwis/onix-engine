@@ -11,13 +11,17 @@ export default tseslint.config(
       "src/generated",
       "data/generated",
       "examples/codelist-browser/dist/**",
+      "examples/validation-browser/dist/**",
     ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { globals: globals.node } },
   {
-    files: ["examples/codelist-browser/**/*.ts"],
+    files: [
+      "examples/codelist-browser/**/*.ts",
+      "examples/validation-browser/**/*.ts",
+    ],
     languageOptions: { globals: globals.browser },
   },
   prettier,

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ONIX Field Validation Demo</title>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header>
+        <p class="eyebrow">ONIX for Books</p>
+        <h1>Field validation</h1>
+        <p class="intro">
+          Edit a partial product-code draft to compare field-level validation
+          with the complete report grouped by canonical path.
+        </p>
+      </header>
+
+      <div class="demo-grid">
+        <section class="panel" aria-labelledby="draft-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="draft-heading">Product code draft</h2>
+              <p>Suggestions come from the applicable ONIX codelists.</p>
+            </div>
+          </div>
+
+          <form id="draft-form" novalidate>
+            <div class="field" data-field="productComposition">
+              <label for="product-composition">Product composition</label>
+              <input
+                id="product-composition"
+                list="product-composition-options"
+                autocomplete="off"
+                placeholder="e.g. 00"
+              />
+              <p class="field-path">/productComposition</p>
+              <div class="field-findings" aria-live="polite"></div>
+            </div>
+
+            <div class="field" data-field="productForm">
+              <label for="product-form">Product form</label>
+              <input
+                id="product-form"
+                list="product-form-options"
+                value="BB"
+                autocomplete="off"
+              />
+              <p class="field-path">/productForm</p>
+              <div class="field-findings" aria-live="polite"></div>
+            </div>
+
+            <div class="details-heading">
+              <div>
+                <h3>Product-form details</h3>
+                <p>Each supplied detail receives its own indexed path.</p>
+              </div>
+              <button id="add-detail" type="button">Add detail</button>
+            </div>
+            <div id="detail-fields"></div>
+          </form>
+
+          <datalist id="product-composition-options"></datalist>
+          <datalist id="product-form-options"></datalist>
+          <datalist id="product-form-detail-options"></datalist>
+        </section>
+
+        <section class="panel" aria-labelledby="report-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="report-heading">Full validation report</h2>
+              <p>Rendered directly from <code>findingsByPath</code>.</p>
+            </div>
+          </div>
+          <p id="versions" class="versions"></p>
+          <div id="report-groups" aria-live="polite"></div>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>

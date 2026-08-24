@@ -93,6 +93,15 @@ pnpm demo
 It opens a Vite development server where you can switch between ONIX codelists
 and Thema, then filter entries by code or heading.
 
+To explore field-level validation with an editable product-code draft, run:
+
+```bash
+pnpm demo:validation
+```
+
+The validation demo shows each field's exact-path findings alongside the full
+validation report grouped by canonical path.
+
 ## Updating the source data
 
 Place exactly one official ONIX export named

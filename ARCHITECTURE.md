@@ -12,7 +12,7 @@ The target format release and codelist issue are independent versioned inputs:
 
 ```ts
 {
-  onixRelease: "3.1.2",
+  onixRelease: "3.1.3",
   codelistIssue: 74,
 }
 ```
@@ -20,7 +20,7 @@ The target format release and codelist issue are independent versioned inputs:
 The internal ONIX model is derived from the following EDItEUR sources:
 
 ```text
-EDItEUR ONIX 3.1.2
+EDItEUR ONIX 3.1.3
 ├── XSD / RNG schema      XML elements, composites, ordering, cardinality, attributes
 ├── Specification          semantics and usage rules
 ├── Codelists              controlled values and code lifecycle information
@@ -43,7 +43,7 @@ Validation has two layers:
 ```text
 onix-engine
 ├── codelists      Official ONIX codelists and Thema
-├── schema         Generated ONIX 3.1.2 intermediate representation and TypeScript types
+├── schema         Generated ONIX 3.1.3 intermediate representation and TypeScript types
 ├── validation     Structural and semantic validation
 ├── subjects       List 27 resolution and external-provider support
 └── xml            ONIX XML serialization and, later, parsing

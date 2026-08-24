@@ -10,11 +10,37 @@ export { getThemaEntries } from "./core/get-thema-entries.js";
 export { getThemaEntry } from "./core/get-thema-entry.js";
 export { getThemaHeading } from "./core/get-thema-heading.js";
 export { hasThemaCode } from "./core/has-thema-code.js";
+export {
+  validateOnixCodes,
+  validateOnixField,
+  validateProductForm,
+  validateThemaAssignments,
+} from "./core/validate-onix-codes.js";
+export { validateOnixXml } from "./core/validate-onix-xml.js";
+export {
+  semanticCodelistRuleAudit,
+  semanticManifest,
+} from "./core/semantic-manifest.js";
 export { metadata } from "./generated/metadata.js";
 export { themaMetadata } from "./generated/thema-metadata.js";
 export type { Codelist, CodelistEntry } from "./types/codelist.js";
 export type { CodelistMetadata } from "./types/metadata.js";
 export type { ThemaEntry, ThemaMetadata } from "./types/thema.js";
+export type {
+  OnixCodeInput,
+  OnixSubjectAssignment,
+  OnixXmlValidationReport,
+  SemanticManifestRule,
+  SourceLocation,
+  ValidateOnixCodesOptions,
+  ValidateOnixXmlOptions,
+  ValidationFinding,
+  ValidationFieldReport,
+  ValidationReport,
+  ValidationSeverity,
+  ValidationSource,
+  ValidationVersions,
+} from "./types/validation.js";
 export type {
   SubjectVocabulary,
   SubjectVocabularyDocument,
