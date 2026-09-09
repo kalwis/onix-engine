@@ -1,7 +1,6 @@
 import type { SemanticManifestRule } from "../types/validation.js";
 import {
   semanticCodelistNoteAudit,
-  productFormDetailRules,
   themaSemanticRuleAudit as generatedThemaSemanticRuleAudit,
 } from "../generated/semantic-manifest.js";
 
@@ -111,8 +110,228 @@ const manuallyReviewedDetails = new Set([
   "P134",
 ]);
 
+/**
+ * Reviewed List 175 rules. These are intentionally maintained here rather
+ * than inferred from codelist prose during generation.
+ */
+type CuratedCodelistDetailRule = {
+  readonly detail: string;
+  readonly allowedForms: readonly string[];
+  readonly allowedFormPrefixes: readonly string[];
+  readonly requiredDetails?: readonly string[];
+  readonly note: string;
+};
+
+const curatedCodelistDetailRules: readonly CuratedCodelistDetailRule[] = [
+  {
+    detail: "B307",
+    allowedForms: ["BB", "OR", "BC"],
+    allowedFormPrefixes: [],
+    note: "Strengthened binding, not specifically intended for libraries: use with Product form code BB or BC",
+  },
+  {
+    detail: "B313",
+    allowedForms: ["BE", "OR"],
+    allowedFormPrefixes: [],
+    requiredDetails: ["B312", "B314"],
+    note: "Cased over Coiled or Wire-O binding: use with Product Form code BE and Product Form Detail code B312 or B314",
+  },
+  {
+    detail: "B315",
+    allowedForms: ["BB"],
+    allowedFormPrefixes: [],
+    note: "Hardcover binding intended for general consumers rather than libraries, use with Product form code BB. The default if a hardcover binding detail is not stated. cf. Library binding",
+  },
+  {
+    detail: "D301",
+    allowedForms: ["DB", "OR", "DI", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DB or DI as applicable",
+  },
+  {
+    detail: "D302",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D303",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D304",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D305",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D306",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D307",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D308",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D309",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D310",
+    allowedForms: ["DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DB as applicable",
+  },
+  {
+    detail: "D311",
+    allowedForms: ["DB", "OR", "DI", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DB or DI as applicable",
+  },
+  {
+    detail: "D312",
+    allowedForms: ["DE", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE as applicable",
+  },
+  {
+    detail: "D313",
+    allowedForms: ["DB", "DI", "DO", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DB, DI, DO or E* as applicable",
+  },
+  {
+    detail: "D314",
+    allowedForms: ["DB", "DI", "OR", "VN", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DB, DI or VN as applicable",
+  },
+  {
+    detail: "D315",
+    allowedForms: ["DA", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DA or E* as applicable",
+  },
+  {
+    detail: "D316",
+    allowedForms: ["DL", "OR", "VL", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DL or VL as applicable",
+  },
+  {
+    detail: "D317",
+    allowedForms: ["DB", "DI", "DO", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DB, DI, DO or E* as applicable. Deprecated – use D313",
+  },
+  {
+    detail: "D318",
+    allowedForms: ["DB", "DI", "DO", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DB, DI, DO or E* as applicable",
+  },
+  {
+    detail: "D319",
+    allowedForms: ["DA", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DA or E* as applicable",
+  },
+  {
+    detail: "D320",
+    allowedForms: ["DB", "DI", "DO", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DB, DI, DO or E* as applicable",
+  },
+  {
+    detail: "D321",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D322",
+    allowedForms: ["DE", "OR", "DB", "AS"],
+    allowedFormPrefixes: [],
+    note: "Use with Product Form code DE or DB as applicable",
+  },
+  {
+    detail: "D323",
+    allowedForms: ["DB", "DI", "DO", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DB, DI, DO or E* as applicable",
+  },
+  {
+    detail: "D324",
+    allowedForms: ["DB", "DI", "DO", "OR", "AS"],
+    allowedFormPrefixes: ["E"],
+    note: "Use with Product Form code DB, DI, DO or E* as applicable",
+  },
+  {
+    detail: "P114",
+    allowedForms: ["PC", "OR", "PS"],
+    allowedFormPrefixes: [],
+    note: "A product that is associated with or ancillary to a calendar or organiser, eg a deskstand for a calendar, or an insert for an organiser: use with Product Form code PC or PS",
+  },
+  {
+    detail: "P121",
+    allowedForms: ["PD"],
+    allowedFormPrefixes: [],
+    note: "For use to specify letter, word, image (etc) recognition cards for teaching reading or other classroom use. Use with Product form code PD",
+  },
+  {
+    detail: "P122",
+    allowedForms: ["PD"],
+    allowedFormPrefixes: [],
+    note: "Quick reference cards, revision cards, recipe cards etc. Use with Product form code PD",
+  },
+  {
+    detail: "P123",
+    allowedForms: ["PD"],
+    allowedFormPrefixes: [],
+    note: "For use to specify cards and card decks for gaming, collecting and trading etc. Use also for divination cards. Use with Product form codes PD",
+  },
+  {
+    detail: "P124",
+    allowedForms: ["PJ"],
+    allowedFormPrefixes: [],
+    note: "And postcard packs / books. Use with Product form code PJ",
+  },
+  {
+    detail: "P125",
+    allowedForms: ["PJ"],
+    allowedFormPrefixes: [],
+    note: "And greeting card packs. Use with Product form code PJ",
+  },
+  {
+    detail: "P127",
+    allowedForms: ["PD"],
+    allowedFormPrefixes: [],
+    note: "Blank certificate, award or achievement cards, Use with Product form code PD",
+  },
+] as const;
+
 const parsedDetailRules: readonly SemanticManifestRule[] =
-  productFormDetailRules
+  curatedCodelistDetailRules
     .filter((rule) => !manuallyReviewedDetails.has(rule.detail))
     .map((rule) => ({
       ruleId: `ONIX-175-${rule.detail}-PRODUCT-FORM`,

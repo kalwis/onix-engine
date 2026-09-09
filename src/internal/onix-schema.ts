@@ -48,4 +48,36 @@ export type OnixSchema = {
     readonly reference: string;
     readonly short: string;
   }[];
+  /**
+   * Resolved structural view of the reference-tag schema. This is deliberately
+   * particle based: an element can occur in different cardinality/choice
+   * contexts, so cardinality does not belong to the global declaration.
+   */
+  readonly elements?: Readonly<Record<string, OnixElementDefinition>>;
+};
+
+export type OnixOccurrence = {
+  readonly minOccurs: number;
+  readonly maxOccurs: number | null;
+};
+
+export type OnixParticle = OnixOccurrence & {
+  readonly kind: "element" | "sequence" | "choice" | "all" | "any";
+  readonly name?: string;
+  readonly children?: readonly OnixParticle[];
+};
+
+export type OnixAttributeDefinition = OnixOccurrence & {
+  readonly name: string;
+  readonly type?: string;
+  readonly use?: "optional" | "required" | "prohibited";
+};
+
+export type OnixElementDefinition = {
+  readonly name: string;
+  readonly shortName?: string;
+  readonly type?: string;
+  readonly particles: readonly OnixParticle[];
+  readonly attributes: readonly OnixAttributeDefinition[];
+  readonly simple: boolean;
 };

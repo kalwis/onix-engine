@@ -35,21 +35,23 @@ Codelists are updated independently of the ONIX message format. Preserve each co
 
 Validation has two layers:
 
-1. Generated structural validation from the release schema: XML shape, order, cardinality, and attributes.
-2. Handwritten semantic validation from the specification, codelists, and Best Practice Guide: usage restrictions, cross-field rules, and release-specific constraints.
+1. Generated structural validation from the release schema: XML shape, order, cardinality, and attributes (`validateOnixMessage`).
+2. Handwritten semantic validation from the specification, codelists, and Best Practice Guide: usage restrictions, cross-field rules, and release-specific constraints (`validateOnixCodes` / `validateOnixXml`).
 
 ## Public modules
 
 ```text
 onix-engine
-├── codelists      Official ONIX codelists and Thema
-├── schema         Generated ONIX 3.1.3 intermediate representation and TypeScript types
-├── validation     Structural and semantic validation
-├── subjects       List 27 resolution and external-provider support
-└── xml            ONIX XML serialization and, later, parsing
+├── (root)         Codelists, Thema, subjects helpers, and re-exported engine APIs
+├── ./schema       Generated ONIX 3.1.3 intermediate representation
+├── ./validation   Structural and semantic validation
+├── ./xml          ONIX XML parse and serialize
+└── ./builders     Schema-shaped message and product builders
 ```
 
-The codelists module remains independently useful. The engine modules provide standards-based ONIX construction, validation, and XML output without requiring applications to use the entire toolkit.
+The codelists module remains independently useful. The engine modules provide standards-based ONIX construction, validation, and XML I/O without requiring applications to use the entire toolkit.
+
+Applications that export a single product map their own domain model to the canonical `OnixMessage` and call `serializeOnixXml`. This package does not define an application-specific product DTO.
 
 ## Proprietary and raw XML data
 

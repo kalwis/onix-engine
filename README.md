@@ -1,12 +1,83 @@
 # onix-engine
 
-`onix-engine` provides programmatic access to official ONIX for Books codelists and the English Thema classification: retrieve codes, headings, and (for Thema) hierarchy and usage notes. It is deliberately not an ONIX XML parser, validator, or search engine.
+`onix-engine` provides official ONIX for Books codelists, Thema, and a schema-generated ONIX 3.1.3 engine. It parses and serializes reference- or short-tag messages through one canonical reference-name model, validates their structure, and applies the included reviewed semantic rules.
 
 The included data is generated from **EDItEUR ONIX for Books Codelists Issue 74** and **Thema v1.6**. EDItEUR remains the authority for both datasets.
 
 ONIX-derived schemas and data remain © EDItEUR and are used under the EDItEUR licence (DOI [10.4400/nwgj](https://doi.org/10.4400/nwgj)). See [NOTICE](NOTICE). The project code itself is MIT licensed.
 
 For the project's long-term transition into a general-purpose ONIX implementation toolkit, see [the architecture direction](ARCHITECTURE.md).
+
+## ONIX XML
+
+```ts
+import {
+  createOnixMessage,
+  parseOnixXml,
+  serializeOnixXml,
+  validateOnixMessage,
+} from "onix-engine";
+
+const message = createOnixMessage()
+  .header({ sender: { senderName: "Example publisher" } })
+  .product((product) =>
+    product
+      .set("recordReference", "example-1")
+      .set("notificationType", "03")
+      .identifier("15", "9780306406157")
+      .title("01", "Example title"),
+  )
+  .build();
+
+const report = validateOnixMessage({
+  ...message,
+  $attributes: { release: "3.1" },
+});
+const xml = serializeOnixXml(message, { tags: "reference" });
+// Defaults release="3.1" and the EDItEUR xmlns when omitted.
+const parsed = parseOnixXml(xml); // canonical lower-camel reference-name model
+```
+
+Use `validateOnixMessage(message)` for canonical models and `validateOnixXml(xml)` for XML. The generated schema is available from `onix-engine/schema`; XML, validation, and builders also have matching subpath exports.
+
+### Single-product XML (application contract)
+
+Applications that download ONIX for one product (for example Flip’s `GET /products/:id/onix`) own product loading and mapping. This package owns the canonical model and XML:
+
+1. Map your product aggregate to an `OnixMessage` (lower-camel ONIX reference names).
+2. Optionally `validateOnixMessage(message)`.
+3. Call `serializeOnixXml(message)` (or wrap that call as `buildOnixXml`).
+
+```ts
+import { serializeOnixXml, validateOnixMessage } from "onix-engine";
+import type { OnixMessage } from "onix-engine";
+
+// Application: ProductEntity → OnixMessage (not a parallel DTO)
+function mapProductToOnix(product: ProductEntity): OnixMessage {
+  return {
+    header: { sender: { senderName: product.organizationName } },
+    product: {
+      recordReference: product.id,
+      notificationType: "03",
+      productIdentifier: [{ productIDType: "15", iDValue: product.isbn13 }],
+      descriptiveDetail: {
+        productComposition: "00",
+        productForm: product.format?.productFormCode,
+        // titleDetail, contributor, subject, audience, …
+      },
+      publishingDetail: {
+        imprint: [{ imprintName: product.imprintName }],
+      },
+    },
+  };
+}
+
+function buildOnixXml(message: OnixMessage): string {
+  return serializeOnixXml(message, { tags: "reference" });
+}
+```
+
+Codelist and Thema helpers on the package root remain available when choosing form, role, and subject codes. Do not introduce a second product vocabulary in the engine; map directly to `OnixMessage` / `OnixNode`.
 
 ## Install
 

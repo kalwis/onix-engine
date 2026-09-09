@@ -21,6 +21,10 @@ export {
   validateThemaAssignments,
 } from "./core/validate-onix-codes.js";
 export { validateOnixXml } from "./core/validate-onix-xml.js";
+export { parseOnixXml, serializeOnixXml } from "./core/onix-xml.js";
+export { validateOnixMessage } from "./core/validate-onix-message.js";
+export { createOnixMessage, createProduct, OnixBuilder, OnixMessageBuilder, ProductBuilder } from "./builders/onix.js";
+export { onix313Schema } from "./generated/onix-3.1.3-schema.js";
 export {
   semanticCodelistRuleAudit,
   semanticManifest,
@@ -34,6 +38,7 @@ export {
 export { metadata } from "./generated/metadata.js";
 export { themaMetadata } from "./generated/thema-metadata.js";
 export type { Codelist, CodelistEntry } from "./types/codelist.js";
+export type { OnixMessage, OnixNode, OnixParseResult, OnixValue, OnixXmlOptions } from "./types/onix.js";
 export type { CodelistMetadata } from "./types/metadata.js";
 export type { ThemaEntry, ThemaMetadata } from "./types/thema.js";
 export type {
