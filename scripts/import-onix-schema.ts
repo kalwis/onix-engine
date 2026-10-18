@@ -60,6 +60,7 @@ type NormalizedElement = {
   shortName?: string;
   type?: string;
   codelist?: number;
+  multiple?: boolean;
   particles: NormalizedParticle[];
   attributes: {
     name: string;
@@ -431,11 +432,19 @@ function normalizeReferenceSchema(
       .map((node) => {
         const complex = xsdChildren(node, ["complexType"])[0];
         const simpleBase = complex
-          ? descendants(complex).find((child) => child.name === "extension")?.attributes.base
+          ? descendants(complex).find((child) => child.name === "extension")
+              ?.attributes.base
           : undefined;
         const listMatch = /(?:^|:)List([0-9]+)$/.exec(simpleBase ?? "");
+        const listType =
+          simpleBase === "dt.CountryCodeList"
+            ? { codelist: 91, multiple: true }
+            : simpleBase === "dt.RegionCodeList"
+              ? { codelist: 49, multiple: true }
+              : undefined;
         const model =
-          complex && xsdChildren(complex, ["sequence", "choice", "all"])[0];
+          complex &&
+          xsdChildren(complex, ["sequence", "choice", "all", "group"])[0];
         const particles = model ? [particle(model)!] : [];
         const attrs = complex ? attributes(complex) : [];
         const shortName = attrs.find(
@@ -452,7 +461,9 @@ function normalizeReferenceSchema(
             name: node.attributes.name!,
             ...(shortValue ? { shortName: shortValue } : {}),
             ...(node.attributes.type ? { type: node.attributes.type } : {}),
-            ...(listMatch ? { codelist: Number(listMatch[1]) } : {}),
+            ...(listMatch
+              ? { codelist: Number(listMatch[1]) }
+              : (listType ?? {})),
             particles,
             attributes: attrs,
             simple: !complex || particles.length === 0,
