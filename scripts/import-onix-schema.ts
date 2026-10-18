@@ -59,6 +59,7 @@ type NormalizedElement = {
   name: string;
   shortName?: string;
   type?: string;
+  codelist?: number;
   particles: NormalizedParticle[];
   attributes: {
     name: string;
@@ -429,6 +430,10 @@ function normalizeReferenceSchema(
       .filter((node) => node.attributes.name)
       .map((node) => {
         const complex = xsdChildren(node, ["complexType"])[0];
+        const simpleBase = complex
+          ? descendants(complex).find((child) => child.name === "extension")?.attributes.base
+          : undefined;
+        const listMatch = /(?:^|:)List([0-9]+)$/.exec(simpleBase ?? "");
         const model =
           complex && xsdChildren(complex, ["sequence", "choice", "all"])[0];
         const particles = model ? [particle(model)!] : [];
@@ -447,6 +452,7 @@ function normalizeReferenceSchema(
             name: node.attributes.name!,
             ...(shortValue ? { shortName: shortValue } : {}),
             ...(node.attributes.type ? { type: node.attributes.type } : {}),
+            ...(listMatch ? { codelist: Number(listMatch[1]) } : {}),
             particles,
             attributes: attrs,
             simple: !complex || particles.length === 0,
@@ -541,6 +547,10 @@ async function main(): Promise<void> {
   await writeFile(
     resolve(sourceDirectory, "onix-construction.ts"),
     `// Generated from the official non-strict ONIX 3.1.3 XSDs. Do not edit.\nexport const onixConstruction = ${JSON.stringify(construction)} as const;\nexport const onixSchemaVersion = "3.1.3.1";\n`,
+  );
+  await writeFile(
+    resolve(sourceDirectory, "onix-editor-schema.ts"),
+    `// Generated from the official ONIX 3.1.3 reference XSD. Do not edit.\nexport const onixEditorSchema = ${JSON.stringify(normalizedElements)} as const;\n`,
   );
   console.log(
     `Generated construction metadata for ${Object.keys(construction).length} ONIX elements and ${aliases.length} aliases.`,

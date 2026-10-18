@@ -12,9 +12,8 @@
       <p>Enter product metadata and generate an ONIX XML record.</p>
       <form id="product-form">
         <div id="sections"></div>
-        <section class="controls"><label>XML tags <select name="tags"><option value="reference">Reference</option><option value="short">Short</option></select></label><button type="submit">Generate XML</button></section>
       </form>
-      <section class="preview"><h2>XML preview</h2><div class="actions"><button type="button" id="copy">Copy</button><button type="button" id="download">Download XML</button></div><pre id="output" aria-live="polite">Your generated XML will appear here.</pre><p id="notice" role="status"></p></section>
+      <section class="preview"><h2>XML preview</h2><div class="controls"><label>XML tags <select name="tags" form="product-form"><option value="reference">Reference</option><option value="short">Short</option></select></label><button type="submit" form="product-form">Generate XML</button></div><div class="actions"><button type="button" id="copy">Copy</button><button type="button" id="download">Download XML</button></div><pre id="output" aria-live="polite">Your generated XML will appear here.</pre><p id="notice" role="status"></p></section>
     </main>
     <script type="module" src="/demo.js"></script>
   </body>
