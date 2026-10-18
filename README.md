@@ -71,6 +71,10 @@ const statement = {
 
 ## Development
 
+### Browser demo
+
+Run `pnpm demo` to bundle and serve the compact ONIX product form, starting at `http://localhost:4173`. If that port is occupied, the server tries subsequent ports up to 20 higher; set `PORT` to choose the starting port. The form uses plain HTML controls and package codelists, showing code and description for coded values. Long codelists are searchable. It builds one ONIX 3.1 product record, supports repeatable identifiers, contributors, subjects, resources, and prices, and lets you copy or download the generated XML. Subject codes remain editable because their vocabulary depends on the selected scheme. The form uses reference tags by default and can output short tags. It does not run XSD validation in the browser; use `validateOnix(xml)` from the Node API to validate generated XML separately.
+
 ```bash
 pnpm install
 pnpm generate
