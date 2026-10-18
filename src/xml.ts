@@ -1,2 +1,11 @@
-export { parseOnixXml, serializeOnixXml } from "./core/onix-xml.js";
-export type { OnixMessage, OnixNode, OnixParseResult, OnixValue, OnixXmlOptions } from "./types/onix.js";
+export {
+  serializeOnix,
+  OnixConstructionError,
+} from "./serializer/serialize.js";
+export type {
+  OnixMessage,
+  OnixNode,
+  OnixValue,
+  OnixInlineElement,
+  OnixXmlOptions,
+} from "./types/onix.js";

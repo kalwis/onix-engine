@@ -1,3 +1,5 @@
-export { validateOnixMessage } from "./core/validate-onix-message.js";
-export { validateOnixXml } from "./core/validate-onix-xml.js";
-export type { OnixXmlValidationReport, ValidationFinding, ValidationReport } from "./types/validation.js";
+export { validateOnix } from "./validation/xsd-validator.js";
+export type {
+  ValidationError,
+  ValidationResult,
+} from "./types/validation-result.js";

@@ -1,197 +1,92 @@
 # onix-engine
 
-`onix-engine` provides official ONIX for Books codelists, Thema, and a schema-generated ONIX 3.1.3 engine. It parses and serializes reference- or short-tag messages through one canonical reference-name model, validates their structure, and applies the included reviewed semantic rules.
-
-The included data is generated from **EDItEUR ONIX for Books Codelists Issue 74** and **Thema v1.6**. EDItEUR remains the authority for both datasets.
-
-ONIX-derived schemas and data remain © EDItEUR and are used under the EDItEUR licence (DOI [10.4400/nwgj](https://doi.org/10.4400/nwgj)). See [NOTICE](NOTICE). The project code itself is MIT licensed.
-
-For the project's long-term transition into a general-purpose ONIX implementation toolkit, see [the architecture direction](ARCHITECTURE.md).
-
-## ONIX XML
-
-```ts
-import {
-  createOnixMessage,
-  parseOnixXml,
-  serializeOnixXml,
-  validateOnixMessage,
-} from "onix-engine";
-
-const message = createOnixMessage()
-  .header({ sender: { senderName: "Example publisher" } })
-  .product((product) =>
-    product
-      .set("recordReference", "example-1")
-      .set("notificationType", "03")
-      .identifier("15", "9780306406157")
-      .title("01", "Example title"),
-  )
-  .build();
-
-const report = validateOnixMessage({
-  ...message,
-  $attributes: { release: "3.1" },
-});
-const xml = serializeOnixXml(message, { tags: "reference" });
-// Defaults release="3.1" and the EDItEUR xmlns when omitted.
-const parsed = parseOnixXml(xml); // canonical lower-camel reference-name model
-```
-
-Use `validateOnixMessage(message)` for canonical models and `validateOnixXml(xml)` for XML. The generated schema is available from `onix-engine/schema`; XML, validation, and builders also have matching subpath exports.
-
-### Single-product XML (application contract)
-
-Applications that download ONIX for one product (for example Flip’s `GET /products/:id/onix`) own product loading and mapping. This package owns the canonical model and XML:
-
-1. Map your product aggregate to an `OnixMessage` (lower-camel ONIX reference names).
-2. Optionally `validateOnixMessage(message)`.
-3. Call `serializeOnixXml(message)` (or wrap that call as `buildOnixXml`).
-
-```ts
-import { serializeOnixXml, validateOnixMessage } from "onix-engine";
-import type { OnixMessage } from "onix-engine";
-
-// Application: ProductEntity → OnixMessage (not a parallel DTO)
-function mapProductToOnix(product: ProductEntity): OnixMessage {
-  return {
-    header: { sender: { senderName: product.organizationName } },
-    product: {
-      recordReference: product.id,
-      notificationType: "03",
-      productIdentifier: [{ productIDType: "15", iDValue: product.isbn13 }],
-      descriptiveDetail: {
-        productComposition: "00",
-        productForm: product.format?.productFormCode,
-        // titleDetail, contributor, subject, audience, …
-      },
-      publishingDetail: {
-        imprint: [{ imprintName: product.imprintName }],
-      },
-    },
-  };
-}
-
-function buildOnixXml(message: OnixMessage): string {
-  return serializeOnixXml(message, { tags: "reference" });
-}
-```
-
-Codelist and Thema helpers on the package root remain available when choosing form, role, and subject codes. Do not introduce a second product vocabulary in the engine; map directly to `OnixMessage` / `OnixNode`.
-
-## Install
+`onix-engine` helps Node.js applications find ONIX codes and generate ONIX for Books 3.1 XML. Applications supply their own book, publishing, and supply data. The package builds reference- or short-tag XML and can validate it against the official non-strict ONIX 3.1.3 XSDs.
 
 ```bash
 pnpm add onix-engine
 ```
 
-## Usage
+## Find codes
+
+```ts
+import { getList, getCode, searchCodes, getThemaEntry } from "onix-engine";
+
+getList(150); // Product form codelist
+getCode(150, "BC"); // Heading, note, and issue history
+searchCodes("paperback", { list: 150 });
+getThemaEntry("AB"); // Thema hierarchy and note
+```
+
+The ONIX data comes from EDItEUR Codelists Issue 74. Thema v1.6.0 remains a separate vocabulary. Search includes deprecated codes by default so developers can inspect their history; pass `includeDeprecated: false` to hide them.
+
+## Generate ONIX
 
 ```ts
 import {
-  getCodelistEntries,
-  getCodelistEntry,
-  getCodelistHeading,
-  hasCodelistCode,
-  metadata,
-  getThemaChildren,
-  getThemaEntry,
-  themaMetadata,
+  createOnixMessage,
+  createProduct,
+  serializeOnix,
+  validateOnix,
 } from "onix-engine";
 
-const subjectSchemes = getCodelistEntries(27);
-const thema = getCodelistEntry(27, "93");
-const themaHeading = getCodelistHeading(27, "93");
-const valid = hasCodelistCode(27, "93");
+const product = createProduct({
+  recordReference: "BOOK-001",
+  notificationType: "03",
+  isbn: "9780007232833",
+  title: "Roseanna",
+  productComposition: "00",
+  productForm: "BC",
+});
 
-console.log(metadata.issue); // 74
+const message = createOnixMessage()
+  .header({
+    sender: { senderName: "Example publisher" },
+    sentDateTime: "20250107",
+  })
+  .product(product)
+  .build();
 
-const arts = getThemaEntry("A");
-const artsTopics = getThemaChildren("A");
-const rootCategories = getThemaChildren();
-
-console.log(arts?.note);
-console.log(themaMetadata.version); // "v1.6.0"
+const xml = serializeOnix(message); // Reference tags
+const shortXml = serializeOnix(message, { tags: "short" });
+const result = await validateOnix(xml);
+if (!result.valid) console.log(result.errors);
 ```
 
-To retrieve a complete list, use `getCodelist(27)`. `getCodelists()` returns lightweight `{ number, heading }` summaries. Codes are always strings, so leading zeroes such as `"01"` are preserved.
+Builders offer `set(name, value)` and `add(name, value)` for additional ONIX reference-name fields. Use lower-camel property names in nested objects. The serializer orders known children using generated metadata and throws `OnixConstructionError` for unknown or misplaced fields. Required fields and code restrictions are checked by the XSD validator; serialization itself is synchronous.
 
-Entries work directly as form options:
-
-```tsx
-const options = getCodelistEntries(27).map(({ code, heading }) => ({
-  value: code,
-  label: `${code} — ${heading}`,
-}));
-```
-
-Thema entries include `parentCode` for hierarchy navigation and `note` when the
-official source supplies usage guidance. Use `getThemaEntries()` to retrieve the
-complete flat list, `getThemaEntry(code)` or `getThemaHeading(code)` for lookup,
-and `hasThemaCode(code)` for validation.
-
-## Application-supplied subject vocabularies
-
-Applications can use their own licensed subject data without adding it to this
-package. Supply a normalized document (or its JSON string) to
-`createSubjectVocabulary()`. The ONIX scheme must be a valid List 27 code;
-BISAC Subject Heading uses `"10"`.
+For fields that permit formatted text, use `$content` to preserve text and XHTML order:
 
 ```ts
-import { createSubjectVocabulary } from "onix-engine";
-
-const bisac = createSubjectVocabulary(await response.text());
-
-bisac.getEntry("your-code");
-bisac.getChildren();
-bisac.hasCode("your-code");
+const statement = {
+  $attributes: { textformat: "05" },
+  $content: ["A ", { name: "em", content: ["special"] }, " edition"],
+};
 ```
 
-The JSON object must contain `onixSchemeCode`, `name`, `version`, and a
-non-empty `entries` array. Each entry requires `code` and `heading`, and may
-contain explicit `parentCode` and `note` values. The calling application is
-responsible for source acquisition, licensing, storage, and upgrades; this
-package does not bundle, scrape, download, or persist external vocabularies.
+`$content` is escaped and serialized as XML nodes. The official XSD determines which formatting is valid in a specific field.
 
-## Browser demo
+## Validation scope
 
-After installing dependencies, start the local codelist browser with:
+`validateOnix(xml)` is asynchronous and uses `xmllint-wasm` with the pinned non-strict reference or short schema, version `3.1.3.1`. The package includes both XSDs and their codelist and XHTML dependencies. Passing this check does not establish strict XSD 1.1, Schematron, additional semantic rules, or trading-partner acceptance.
+
+## Development
 
 ```bash
-pnpm demo
-```
-
-It opens a Vite development server where you can switch between ONIX codelists
-and Thema, then filter entries by code or heading.
-
-To explore field-level validation with an editable product-code draft, run:
-
-```bash
-pnpm demo:validation
-```
-
-The validation demo shows each field's exact-path findings alongside the full
-validation report grouped by canonical path, with repeatable Thema subject and
-qualifier assignments restricted to the selected List 27 scheme.
-
-`isThemaCodeAssignable(code)` and `themaNonAssignableCodes` expose a curated,
-immutable v1.6 assignment policy for codes that the pinned Thema notes say not
-to assign directly. This list is hand-maintained: update it only after an
-explicit review of the pinned Thema notes; it is not derived during generation
-or at runtime.
-
-## Updating the source data
-
-Place exactly one official ONIX export named
-`ONIX_BookProduct_Codelists_Issue_<issue>.json` and exactly one English Thema
-export named `<YYYYMMDD>_Thema_v<version>_en.json` in `data/raw/`, then run:
-
-```bash
+pnpm install
 pnpm generate
 pnpm validate:data
+pnpm typecheck
 pnpm test
+pnpm build
 ```
 
-The importer never modifies files in `data/raw/`. It writes normalized JSON under `data/generated/` and runtime TypeScript modules under `src/generated/`; both are generated files and must not be edited manually. The official JSON contains the human-readable codelist titles, including lists with no entries.
+Generation reads the pinned official files in `data/raw/` and writes runtime TypeScript data in `src/generated/`. It does not run for package consumers. The optional XSLT tools in `scripts/` are not part of the npm runtime.
 
-Additional ONIX fields (notes and issue-added, issue-modified, and issue-deprecated values) are retained in `data/generated/codelists.json` for future expansion, while the ONIX public entry API intentionally exposes only `code` and `heading`. Thema’s public entries expose `code`, `heading`, `parentCode`, and `note`.
+## Migrating from 0.2
+
+- `serializeOnixXml` becomes `serializeOnix`; `validateOnixXml` becomes asynchronous `validateOnix` and now reports standard XSD errors.
+- `getCodelist` and `getCodelistEntry` become `getList` and `getCode`. Code entries now include notes and issue history.
+- The public XML parser, object structural validator, schema export, and handwritten semantic validators have been removed. Applications should map their own data into the builders and validate the resulting XML.
+- See [ARCHITECTURE.md](ARCHITECTURE.md) for the generation and validation boundary.
+
+Project code is MIT licensed. EDItEUR standards and derived data remain under the [EDItEUR licence](https://doi.org/10.4400/nwgj); see [NOTICE](NOTICE).

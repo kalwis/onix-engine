@@ -1,13 +1,25 @@
-/** Canonical, reference-name ONIX value. Repeated particles are arrays. */
+/** An XHTML element within an ONIX field that permits formatted content. */
+export interface OnixInlineElement {
+  readonly name: string;
+  readonly attributes?: Readonly<Record<string, string>>;
+  readonly content?: readonly (string | OnixInlineElement)[];
+}
+
 export type OnixValue = string | OnixNode;
 
+/** Canonical reference-tag names, written as lower-camel properties. */
 export interface OnixNode {
   readonly $attributes?: Readonly<Record<string, string>>;
   readonly $value?: string;
-  readonly [element: string]: OnixValue | readonly OnixValue[] | Readonly<Record<string, string>> | undefined;
+  readonly $content?: readonly (string | OnixInlineElement)[];
+  readonly [element: string]:
+    | OnixValue
+    | readonly OnixValue[]
+    | Readonly<Record<string, string>>
+    | readonly (string | OnixInlineElement)[]
+    | undefined;
 }
 
-/** Contents of the ONIXMessage root element, using lower-camel reference names. */
 export type OnixMessage = OnixNode;
 
 export interface OnixXmlOptions {
@@ -15,7 +27,11 @@ export interface OnixXmlOptions {
   readonly declaration?: boolean;
 }
 
-export interface OnixParseResult {
-  readonly message?: OnixMessage;
-  readonly report: import("./validation.js").OnixXmlValidationReport;
+export interface ProductInput {
+  readonly recordReference?: string;
+  readonly notificationType?: string;
+  readonly isbn?: string;
+  readonly title?: string;
+  readonly productComposition?: string;
+  readonly productForm?: string;
 }

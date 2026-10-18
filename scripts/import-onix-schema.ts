@@ -1,7 +1,6 @@
-/** Build-time importer for the pinned EDItEUR ONIX 3.1.3 strict XSD source. */
-import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { basename, relative, resolve } from "node:path";
+/** Generate the small construction index from the pinned ONIX 3.1.3 XSDs. */
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, resolve } from "node:path";
 import { SaxesParser, type SaxesTag } from "saxes";
 
 const root = resolve(import.meta.dirname, "..");
@@ -9,7 +8,6 @@ const rawDirectory = resolve(
   root,
   "data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74",
 );
-const generatedDirectory = resolve(root, "data/generated");
 const sourceDirectory = resolve(root, "src/generated");
 const xsdNamespace = "http://www.w3.org/2001/XMLSchema";
 const schematronNamespace = "http://purl.oclc.org/dsdl/schematron";
@@ -159,9 +157,6 @@ function parseXml(source: string, label: string): Promise<Node> {
   });
 }
 
-function hash(contents: Buffer): string {
-  return createHash("sha256").update(contents).digest("hex");
-}
 function occurrence(node: Node): Pick<ContentNode, "minOccurs" | "maxOccurs"> {
   return {
     minOccurs: node.attributes.minOccurs ?? "1",
@@ -174,7 +169,10 @@ function normalizedOccurrence(node: Node): {
 } {
   const minOccurs = Number(node.attributes.minOccurs ?? "1");
   const rawMax = node.attributes.maxOccurs ?? "1";
-  return { minOccurs, maxOccurs: rawMax === "unbounded" ? null : Number(rawMax) };
+  return {
+    minOccurs,
+    maxOccurs: rawMax === "unbounded" ? null : Number(rawMax),
+  };
 }
 function content(node: Node): ContentNode[] {
   return node.children
@@ -325,14 +323,17 @@ function findParent(
 
 function xsdChildren(node: Node, names?: readonly string[]): Node[] {
   return node.children.filter(
-    (child) => child.uri === xsdNamespace && (!names || names.includes(child.name)),
+    (child) =>
+      child.uri === xsdNamespace && (!names || names.includes(child.name)),
   );
 }
 
 /** Resolve the structural grammar used at runtime without treating XSD files as
  * runtime modules. The compiler intentionally retains particles (rather than
  * flattening them) so choices and nested occurrence constraints survive. */
-function normalizeReferenceSchema(schema: Node): Record<string, NormalizedElement> {
+function normalizeReferenceSchema(
+  schema: Node,
+): Record<string, NormalizedElement> {
   const globalGroups = new Map(
     xsdChildren(schema, ["group"])
       .filter((node) => node.attributes.name)
@@ -343,7 +344,10 @@ function normalizeReferenceSchema(schema: Node): Record<string, NormalizedElemen
       .filter((node) => node.attributes.name)
       .map((node) => [node.attributes.name!, node]),
   );
-  const particle = (node: Node, visiting = new Set<string>()): NormalizedParticle | undefined => {
+  const particle = (
+    node: Node,
+    visiting = new Set<string>(),
+  ): NormalizedParticle | undefined => {
     const occurrence = normalizedOccurrence(node);
     if (node.name === "element")
       return {
@@ -373,22 +377,48 @@ function normalizeReferenceSchema(schema: Node): Record<string, NormalizedElemen
       return {
         kind: node.name as "sequence" | "choice" | "all",
         ...occurrence,
-        children: xsdChildren(node, ["element", "sequence", "choice", "all", "group", "any"])
+        children: xsdChildren(node, [
+          "element",
+          "sequence",
+          "choice",
+          "all",
+          "group",
+          "any",
+        ])
           .map((child) => particle(child, visiting))
           .filter((child): child is NormalizedParticle => Boolean(child)),
       };
     return undefined;
   };
-  const attributes = (node: Node, seen = new Set<string>()): NormalizedElement["attributes"] =>
+  const attributes = (
+    node: Node,
+    seen = new Set<string>(),
+  ): NormalizedElement["attributes"] =>
     xsdChildren(node, ["attribute", "attributeGroup"]).flatMap((child) => {
       if (child.name === "attribute") {
         const name = child.attributes.name ?? child.attributes.ref;
         return name
-          ? [{ name, ...(child.attributes.type ? { type: child.attributes.type } : {}), ...(child.attributes.use ? { use: child.attributes.use as "optional" | "required" | "prohibited" } : {}), minOccurs: child.attributes.use === "required" ? 1 : 0, maxOccurs: 1 }]
+          ? [
+              {
+                name,
+                ...(child.attributes.type
+                  ? { type: child.attributes.type }
+                  : {}),
+                ...(child.attributes.use
+                  ? {
+                      use: child.attributes.use as
+                        "optional" | "required" | "prohibited",
+                    }
+                  : {}),
+                minOccurs: child.attributes.use === "required" ? 1 : 0,
+                maxOccurs: 1,
+              },
+            ]
           : [];
       }
       const ref = child.attributes.ref;
-      const target = ref && !seen.has(ref) ? globalAttributeGroups.get(ref) : undefined;
+      const target =
+        ref && !seen.has(ref) ? globalAttributeGroups.get(ref) : undefined;
       if (!target) return [];
       const next = new Set(seen);
       next.add(ref!);
@@ -399,60 +429,51 @@ function normalizeReferenceSchema(schema: Node): Record<string, NormalizedElemen
       .filter((node) => node.attributes.name)
       .map((node) => {
         const complex = xsdChildren(node, ["complexType"])[0];
-        const model = complex && xsdChildren(complex, ["sequence", "choice", "all"])[0];
+        const model =
+          complex && xsdChildren(complex, ["sequence", "choice", "all"])[0];
         const particles = model ? [particle(model)!] : [];
         const attrs = complex ? attributes(complex) : [];
-        const shortName = attrs.find((attribute) => attribute.name === "shortname");
+        const shortName = attrs.find(
+          (attribute) => attribute.name === "shortname",
+        );
         const shortValue = shortName
           ? descendants(complex!).find(
               (child) => child.name === "enumeration" && child.attributes.value,
             )?.attributes.value
           : undefined;
-        return [node.attributes.name!, {
-          name: node.attributes.name!,
-          ...(shortValue ? { shortName: shortValue } : {}),
-          ...(node.attributes.type ? { type: node.attributes.type } : {}),
-          particles,
-          attributes: attrs,
-          simple: !complex || particles.length === 0,
-        } satisfies NormalizedElement];
+        return [
+          node.attributes.name!,
+          {
+            name: node.attributes.name!,
+            ...(shortValue ? { shortName: shortValue } : {}),
+            ...(node.attributes.type ? { type: node.attributes.type } : {}),
+            particles,
+            attributes: attrs,
+            simple: !complex || particles.length === 0,
+          } satisfies NormalizedElement,
+        ];
       }),
   );
 }
 
 async function main(): Promise<void> {
-  const names = (await readdir(rawDirectory)).sort();
-  const legacyXsl = resolve(
-    root,
-    "scripts/switch-onix-3.0-tagnames-2.0_v1.3.xsl",
-  );
-  const files = [
-    ...names.map((name) => resolve(rawDirectory, name)),
-    legacyXsl,
-  ];
-  const sourceFiles = await Promise.all(
-    files.map(async (file) => ({
-      path: relative(root, file).replaceAll("\\", "/"),
-      sha256: hash(await readFile(file)),
-    })),
-  );
-  const strictRoots = [
-    "ONIX_BookProduct_3.1_reference_strict.xsd",
-    "ONIX_BookProduct_3.1_short_strict.xsd",
+  const standardRoots = [
+    "ONIX_BookProduct_3.1_reference.xsd",
+    "ONIX_BookProduct_3.1_short.xsd",
   ];
   const parsed = new Map<string, Node>();
-  for (const name of names.filter((name) => name.endsWith(".xsd")))
+  for (const name of standardRoots)
     parsed.set(
       name,
       await parseXml(await readFile(resolve(rawDirectory, name), "utf8"), name),
     );
-  const roots = strictRoots.map((name) => ({
+  const roots = standardRoots.map((name) => ({
     name,
     schema: parsed.get(name)!,
   }));
   for (const { name, schema } of roots) {
-    if (schema.attributes.version !== "3.1.3.74.0")
-      throw new Error(`${name} must declare schema version 3.1.3.74.0.`);
+    if (schema.attributes.version !== "3.1.3.1")
+      throw new Error(`${name} must declare schema version 3.1.3.1.`);
   }
   const documents = [...parsed]
     .map(([name, schema]) => ({
@@ -467,10 +488,10 @@ async function main(): Promise<void> {
     }))
     .sort((a, b) => a.path.localeCompare(b.path));
   const reference = documents.find(
-    (document) => basename(document.path) === strictRoots[0],
+    (document) => basename(document.path) === standardRoots[0],
   )!;
   const short = documents.find(
-    (document) => basename(document.path) === strictRoots[1],
+    (document) => basename(document.path) === standardRoots[1],
   )!;
   // ONIX tag aliases are declared by the corresponding global element tables.
   // Local particles can repeat names, so they deliberately reuse these aliases.
@@ -495,53 +516,34 @@ async function main(): Promise<void> {
     new Set(aliases.map((alias) => alias.short)).size !== aliases.length
   )
     throw new Error("Reference/short aliases are not one-to-one.");
-  const manifest = {
-    onixRelease: "3.1.3",
-    schemaVersion: "3.1.3.74.0",
-    codelistIssue: 74,
-    canonicalRoots: strictRoots.map(
-      (name) =>
-        `data/raw/ONIX_BookProduct_3.1_strict_XSDs+codes_Issue_74/${name}`,
-    ),
-    includedModules: [
-      "ONIX_BookProduct_CodeLists.xsd",
-      "ONIX_XHTML_Subset.xsd",
-    ],
-    samples: names.filter((name) => name.endsWith(".xml")),
-    legacyInputs: names
-      .filter((name) =>
-        /^ONIX_BookProduct_3.1_(reference|short)\.xsd$/.test(name),
-      )
-      .concat(["scripts/switch-onix-3.0-tagnames-2.0_v1.3.xsl"]),
-    files: sourceFiles,
-  };
   const normalizedElements = normalizeReferenceSchema(roots[0]!.schema);
   for (const alias of aliases) {
     const element = normalizedElements[alias.reference];
     if (element) element.shortName = alias.short;
   }
-  const ir = {
-    format: "onix-engine.schema-ir/v1",
-    ...manifest,
-    manifest,
-    documents,
-    aliases,
-    elements: normalizedElements,
-  };
-  await mkdir(generatedDirectory, { recursive: true });
-  await mkdir(sourceDirectory, { recursive: true });
-  const json = `${JSON.stringify(ir, null, 2)}\n`;
-  await writeFile(resolve(generatedDirectory, "onix-3.1.3-schema.json"), json);
-  await writeFile(
-    resolve(generatedDirectory, "onix-3.1.3-source-manifest.json"),
-    `${JSON.stringify(manifest, null, 2)}\n`,
+  const namesIn = (particle: NormalizedParticle): string[] =>
+    particle.kind === "element"
+      ? particle.name
+        ? [particle.name]
+        : []
+      : (particle.children ?? []).flatMap(namesIn);
+  const construction = Object.fromEntries(
+    Object.entries(normalizedElements).map(([name, element]) => [
+      name,
+      {
+        short: element.shortName,
+        children: [...new Set(element.particles.flatMap(namesIn))],
+        attributes: element.attributes.map((attribute) => attribute.name),
+      },
+    ]),
   );
+  await mkdir(sourceDirectory, { recursive: true });
   await writeFile(
-    resolve(sourceDirectory, "onix-3.1.3-schema.ts"),
-    `// Generated by scripts/import-onix-schema.ts. Internal: not exported from the package root.\nimport schema from "../../data/generated/onix-3.1.3-schema.json" with { type: "json" };\nimport type { OnixSchema } from "../internal/onix-schema.js";\nexport const onix313Schema = schema as OnixSchema;\n`,
+    resolve(sourceDirectory, "onix-construction.ts"),
+    `// Generated from the official non-strict ONIX 3.1.3 XSDs. Do not edit.\nexport const onixConstruction = ${JSON.stringify(construction)} as const;\nexport const onixSchemaVersion = "3.1.3.1";\n`,
   );
   console.log(
-    `Generated ONIX 3.1.3 schema IR from ${documents.length} schemas and ${aliases.length} aliases.`,
+    `Generated construction metadata for ${Object.keys(construction).length} ONIX elements and ${aliases.length} aliases.`,
   );
 }
 await main();

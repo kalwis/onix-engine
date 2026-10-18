@@ -9,5 +9,4 @@ export interface ThemaMetadata {
   readonly issue: number;
   readonly version: string;
   readonly lastUpdated: string;
-  readonly generatedAt: string;
 }

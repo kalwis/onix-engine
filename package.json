@@ -1,7 +1,7 @@
 {
   "name": "onix-engine",
-  "version": "0.2.0",
-  "description": "ONIX for Books 3.1.3 XML parse/serialize, validation, codelists, and Thema.",
+  "version": "1.0.0",
+  "description": "Build ONIX for Books 3.1 XML, validate it against official XSDs, and explore codelists and Thema.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.17.0",
@@ -29,14 +29,20 @@
       "import": "./dist/builders.js",
       "require": "./dist/builders.cjs"
     },
-    "./schema": {
-      "types": "./dist/schema.d.ts",
-      "import": "./dist/schema.js",
-      "require": "./dist/schema.cjs"
+    "./codelists": {
+      "types": "./dist/codelists.d.ts",
+      "import": "./dist/codelists.js",
+      "require": "./dist/codelists.cjs"
+    },
+    "./thema": {
+      "types": "./dist/thema.d.ts",
+      "import": "./dist/thema.js",
+      "require": "./dist/thema.cjs"
     }
   },
   "files": [
     "dist",
+    "standards/onix/3.1.3",
     "README.md",
     "LICENSE",
     "NOTICE"
@@ -47,10 +53,10 @@
   "scripts": {
     "generate": "tsx scripts/import-codelists.ts && tsx scripts/import-onix-schema.ts",
     "generate:schema": "tsx scripts/import-onix-schema.ts",
-    "validate:data": "tsx scripts/validate-codelists.ts && tsx scripts/validate-onix-schema.ts",
+    "validate:data": "tsx scripts/validate-codelists.ts && tsx scripts/verify-standards.ts",
     "build": "tsup",
-    "demo": "vite examples/codelist-browser",
-    "demo:validation": "vite examples/validation-browser",
+    "demo": "tsx examples/generate-onix.ts",
+    "demo:codes": "tsx examples/find-codes.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -58,7 +64,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "saxes": "^6.0.0"
+    "xmllint-wasm": "5.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
@@ -67,11 +73,11 @@
     "eslint-config-prettier": "^10.1.1",
     "globals": "^16.0.0",
     "prettier": "^3.5.3",
+    "saxes": "^6.0.0",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.0",
-    "vite": "^7.3.6",
     "vitest": "^3.0.9"
   },
   "keywords": [
