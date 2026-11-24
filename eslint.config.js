@@ -7,6 +7,7 @@ export default tseslint.config(
   {
     ignores: [
       "dist",
+      "demo/dist",
       "coverage",
       "src/generated",
       "data/generated",

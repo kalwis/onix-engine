@@ -184,11 +184,13 @@ export function readProductEditor(root: HTMLElement): Record<string, unknown> {
       );
       const value =
         control instanceof HTMLSelectElement && control.multiple
-          ? [...control.selectedOptions]
-              .map((option) => option.value)
-              .join(" ")
+          ? [...control.selectedOptions].map((option) => option.value).join(" ")
           : control?.dataset.multiple === ""
-            ? [...control.querySelectorAll<HTMLInputElement>("[data-code-option]:checked")]
+            ? [
+                ...control.querySelectorAll<HTMLInputElement>(
+                  "[data-code-option]:checked",
+                ),
+              ]
                 .map((input) => input.value)
                 .join(" ")
             : control instanceof HTMLInputElement
@@ -220,9 +222,11 @@ export function readProductEditor(root: HTMLElement): Record<string, unknown> {
 }
 
 function clearEditor(root: HTMLElement): void {
-  const directFields = [...root.querySelectorAll<HTMLFieldSetElement>(
-    ":scope > fieldset[data-element]",
-  )];
+  const directFields = [
+    ...root.querySelectorAll<HTMLFieldSetElement>(
+      ":scope > fieldset[data-element]",
+    ),
+  ];
   const seen = new Set<string>();
   for (const field of directFields) {
     const key = field.dataset.element!;
@@ -233,7 +237,10 @@ function clearEditor(root: HTMLElement): void {
     seen.add(key);
     if (field.dataset.repeat === "true") {
       let next = field.nextElementSibling;
-      while (next instanceof HTMLFieldSetElement && next.dataset.element === key) {
+      while (
+        next instanceof HTMLFieldSetElement &&
+        next.dataset.element === key
+      ) {
         const after = next.nextElementSibling;
         next.remove();
         next = after;
@@ -249,20 +256,26 @@ function clearEditor(root: HTMLElement): void {
       else select.selectedIndex = 0;
     });
     field.querySelectorAll<HTMLElement>("[data-choice]").forEach((choice) => {
-      const select = choice.querySelector<HTMLSelectElement>("[data-choice-select]");
+      const select = choice.querySelector<HTMLSelectElement>(
+        "[data-choice-select]",
+      );
       if (select) select.selectedIndex = 0;
-      choice.querySelectorAll<HTMLElement>("[data-choice-branch]").forEach((branch, index) => {
-        branch.hidden = index !== 0;
-      });
+      choice
+        .querySelectorAll<HTMLElement>("[data-choice-branch]")
+        .forEach((branch, index) => {
+          branch.hidden = index !== 0;
+        });
     });
     clearEditor(field);
   }
 }
 
 function directEditorFields(root: HTMLElement): HTMLFieldSetElement[] {
-  return [...root.querySelectorAll<HTMLFieldSetElement>(
-    ":scope > fieldset[data-element]",
-  )];
+  return [
+    ...root.querySelectorAll<HTMLFieldSetElement>(
+      ":scope > fieldset[data-element]",
+    ),
+  ];
 }
 
 function setFieldValue(field: HTMLFieldSetElement, source: Element): void {
@@ -274,16 +287,20 @@ function setFieldValue(field: HTMLFieldSetElement, source: Element): void {
     });
   } else if (control?.dataset.multiple === "") {
     const selected = new Set(source.textContent?.trim().split(/\s+/) ?? []);
-    control.querySelectorAll<HTMLInputElement>("[data-code-option]").forEach((input) => {
-      input.checked = selected.has(input.value);
-    });
+    control
+      .querySelectorAll<HTMLInputElement>("[data-code-option]")
+      .forEach((input) => {
+        input.checked = selected.has(input.value);
+      });
   } else if (control instanceof HTMLInputElement) {
     control.value = source.textContent?.trim() ?? "";
   }
-  field.querySelectorAll<HTMLInputElement>("input[data-attr]").forEach((input) => {
-    if (input.closest("fieldset[data-element]") === field)
-      input.value = source.getAttribute(input.dataset.attr!) ?? "";
-  });
+  field
+    .querySelectorAll<HTMLInputElement>("input[data-attr]")
+    .forEach((input) => {
+      if (input.closest("fieldset[data-element]") === field)
+        input.value = source.getAttribute(input.dataset.attr!) ?? "";
+    });
 }
 
 function populateEditor(root: HTMLElement, source: Element): void {
@@ -305,24 +322,40 @@ function populateEditor(root: HTMLElement, source: Element): void {
     if (template.dataset.repeat === "true") {
       for (let index = 1; index < nodes.length; index++) {
         const clone = template.cloneNode(true) as HTMLFieldSetElement;
-        template.parentElement!.insertBefore(clone, instances.at(-1)!.nextSibling);
+        template.parentElement!.insertBefore(
+          clone,
+          instances.at(-1)!.nextSibling,
+        );
         instances.push(clone);
       }
     }
     nodes.forEach((node, index) => {
       const field = instances[index];
       if (!field) return;
-      const branchNodes = [...field.querySelectorAll<HTMLElement>("[data-choice]")].filter(
-        (choice) => choice.closest("fieldset[data-element]") === field,
-      );
+      const branchNodes = [
+        ...field.querySelectorAll<HTMLElement>("[data-choice]"),
+      ].filter((choice) => choice.closest("fieldset[data-element]") === field);
       for (const choice of branchNodes) {
-        const branches = [...choice.querySelectorAll<HTMLElement>(":scope > [data-choice-branch]")];
+        const branches = [
+          ...choice.querySelectorAll<HTMLElement>(
+            ":scope > [data-choice-branch]",
+          ),
+        ];
         let bestIndex = -1;
         let bestScore = 0;
         branches.forEach((branch, branchIndex) => {
           const expected = directEditorFields(branch);
           const score = expected.reduce(
-            (total, expectedField) => total + (node.children ? [...node.children].some((child) => prop(child.tagName) === expectedField.dataset.element) ? 1 : 0 : 0),
+            (total, expectedField) =>
+              total +
+              (node.children
+                ? [...node.children].some(
+                    (child) =>
+                      prop(child.tagName) === expectedField.dataset.element,
+                  )
+                  ? 1
+                  : 0
+                : 0),
             0,
           );
           if (score > bestScore) {
@@ -331,9 +364,13 @@ function populateEditor(root: HTMLElement, source: Element): void {
           }
         });
         if (bestIndex >= 0) {
-          const select = choice.querySelector<HTMLSelectElement>("[data-choice-select]");
+          const select = choice.querySelector<HTMLSelectElement>(
+            "[data-choice-select]",
+          );
           if (select) select.value = String(bestIndex);
-          branches.forEach((branch, index) => (branch.hidden = index !== bestIndex));
+          branches.forEach(
+            (branch, index) => (branch.hidden = index !== bestIndex),
+          );
         }
       }
       const schemaName = key[0]!.toUpperCase() + key.slice(1);
