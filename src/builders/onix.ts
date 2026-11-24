@@ -1,74 +1,147 @@
-import type { OnixMessage, OnixNode, OnixValue } from "../types/onix.js";
+import type {
+  OnixMessage,
+  OnixNode,
+  OnixValue,
+  ProductInput,
+} from "../types/onix.js";
 
-function clone(value: OnixValue): OnixValue {
-  if (typeof value === "string") return value;
-  return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, Array.isArray(child) ? child.map(clone) : child && typeof child === "object" && key !== "$attributes" ? clone(child as OnixValue) : child])) as OnixNode;
+function copy<T>(value: T): T {
+  return structuredClone(value);
 }
 
-/** A small immutable schema-shaped builder. Generic operations make every generated particle reachable. */
-export class OnixBuilder<T extends OnixNode = OnixMessage> {
-  protected readonly value: T;
-  constructor(value: T = {} as T) { this.value = clone(value) as T; }
+/** Common helpers plus generic ONIX reference-name fields. */
+export class OnixBuilder<T extends OnixNode = OnixNode> {
+  protected readonly value: Record<string, unknown>;
+
+  constructor(value: T = {} as T) {
+    this.value = copy(value) as Record<string, unknown>;
+  }
+
   set(name: string, value: OnixValue): this {
-    (this.value as Record<string, unknown>)[name] = value;
+    this.value[name] = copy(value);
     return this;
   }
-  append(name: string, value: OnixValue): this {
-    const target = this.value as Record<string, unknown>;
-    const current = target[name];
-    target[name] = current === undefined ? [value] : Array.isArray(current) ? [...current, value] : [current as OnixValue, value];
+
+  add(name: string, value: OnixValue): this {
+    const current = this.value[name];
+    this.value[name] =
+      current === undefined
+        ? [copy(value)]
+        : Array.isArray(current)
+          ? [...current, copy(value)]
+          : [current, copy(value)];
     return this;
   }
-  build(): T { return clone(this.value) as T; }
+
+  attributes(value: Readonly<Record<string, string>>): this {
+    this.value.$attributes = {
+      ...(this.value.$attributes as Record<string, string> | undefined),
+      ...value,
+    };
+    return this;
+  }
+
+  build(): T {
+    return copy(this.value) as T;
+  }
 }
 
 export class ProductBuilder extends OnixBuilder<OnixNode> {
   identifier(typeCode: string, value: string, typeName?: string): this {
-    return this.append("productIdentifier", {
+    return this.add("productIdentifier", {
       productIDType: typeCode,
       ...(typeName ? { iDTypeName: typeName } : {}),
       iDValue: value,
     });
   }
 
-  private appendDescriptive(name: string, value: OnixValue): this {
+  private descriptive(name: string, value: OnixValue, repeated: boolean): this {
     const current = this.value.descriptiveDetail;
-    const descriptive =
+    const detail =
       current && typeof current === "object" && !Array.isArray(current)
-        ? { ...(current as OnixNode) }
-        : ({} as OnixNode);
-    const existing = descriptive[name];
-    (descriptive as Record<string, unknown>)[name] =
-      existing === undefined ? [value] : Array.isArray(existing) ? [...existing, value] : [existing as OnixValue, value];
-    return this.set("descriptiveDetail", descriptive);
+        ? (copy(current) as Record<string, unknown>)
+        : {};
+    const existing = detail[name];
+    detail[name] = repeated
+      ? existing === undefined
+        ? [value]
+        : Array.isArray(existing)
+          ? [...existing, value]
+          : [existing, value]
+      : value;
+    this.value.descriptiveDetail = detail;
+    return this;
+  }
+
+  productForm(code: string): this {
+    return this.descriptive("productForm", code, false);
+  }
+  productComposition(code: string): this {
+    return this.descriptive("productComposition", code, false);
   }
 
   title(typeCode: string, text: string): this {
-    return this.appendDescriptive("titleDetail", {
-      titleType: typeCode,
-      titleElement: [{ titleElementLevel: "01", titleText: text }],
-    });
+    return this.descriptive(
+      "titleDetail",
+      {
+        titleType: typeCode,
+        titleElement: [{ titleElementLevel: "01", titleText: text }],
+      },
+      true,
+    );
   }
+
   contributor(roleCode: string, name: string): this {
-    return this.appendDescriptive("contributor", { contributorRole: [roleCode], personName: name });
+    return this.descriptive(
+      "contributor",
+      { contributorRole: [roleCode], personName: name },
+      true,
+    );
   }
+
   subject(schemeCode: string, code: string, isMain = false): this {
-    return this.appendDescriptive("subject", {
-      subjectSchemeIdentifier: schemeCode,
-      subjectCode: code,
-      ...(isMain ? { mainSubject: "01" } : {}),
-    });
+    return this.descriptive(
+      "subject",
+      {
+        subjectSchemeIdentifier: schemeCode,
+        subjectCode: code,
+        ...(isMain ? { mainSubject: "01" } : {}),
+      },
+      true,
+    );
   }
 }
 
 export class OnixMessageBuilder extends OnixBuilder<OnixMessage> {
-  /** Supply sender and other header fields from the calling application's organization data. */
-  header(value: OnixNode): this { return this.set("header", value); }
-  product(configure: ProductBuilder | ((product: ProductBuilder) => ProductBuilder)): this {
-    const product = configure instanceof ProductBuilder ? configure : configure(new ProductBuilder());
-    return this.append("product", product.build());
+  header(value: OnixNode): this {
+    return this.set("header", value);
+  }
+
+  product(
+    configure: ProductBuilder | ((product: ProductBuilder) => ProductBuilder),
+  ): this {
+    const product =
+      configure instanceof ProductBuilder
+        ? configure
+        : configure(new ProductBuilder());
+    return this.add("product", product.build());
   }
 }
 
-export function createOnixMessage(value?: OnixMessage): OnixMessageBuilder { return new OnixMessageBuilder(value); }
-export function createProduct(value?: OnixNode): ProductBuilder { return new ProductBuilder(value); }
+export function createProduct(input: ProductInput = {}): ProductBuilder {
+  const product = new ProductBuilder();
+  if (input.recordReference !== undefined)
+    product.set("recordReference", input.recordReference);
+  if (input.notificationType !== undefined)
+    product.set("notificationType", input.notificationType);
+  if (input.isbn !== undefined) product.identifier("15", input.isbn);
+  if (input.title !== undefined) product.title("01", input.title);
+  if (input.productComposition !== undefined)
+    product.productComposition(input.productComposition);
+  if (input.productForm !== undefined) product.productForm(input.productForm);
+  return product;
+}
+
+export function createOnixMessage(): OnixMessageBuilder {
+  return new OnixMessageBuilder();
+}

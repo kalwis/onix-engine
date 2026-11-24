@@ -1,0 +1,44 @@
+{
+	"$schema": "http://json-schema.org/draft/2020-12/schema",
+	"$comment": "TODO - add $id, tighten requirements for ModifiedNumber, DeprecatedNumber",
+	"type": "object",
+	"title": "JSON schema for ONIX codelists",
+	"description": "version 0.1 – subject to change",
+	"properties": {
+		"ONIXCodeTable": {
+			"type": "object",
+			"properties": {
+				"IssueNumber": { "type": "integer" },
+				"CodeList": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"CodeListNumber": { "type": "integer" },
+							"CodeListDescription": { "type": "string" },
+							"IssueNumber": { "type": "integer" },
+							"Code": {
+								"type": "array",
+								"items": {
+										"type": "object",
+										"properties": {
+											"CodeValue": { "type": "string" },
+											"CodeDescription": { "type": "string" },
+											"CodeNotes": { "type": "string" },
+											"IssueNumber": { "type": "integer" },
+											"ModifiedNumber": { "type": [ "integer", "null" ] },
+											"DeprecatedNumber": { "type": [ "integer", "null" ] }
+										}
+									},
+								"required": [ "CodeValue", "CodeDescription", "CodeNotes", "IssueNumber", "ModifiedNumber", "DeprecatedNumber" ]
+							}
+						},
+						"required": [ "CodeListNumber", "CodeListDescription", "IssueNumber", "Code" ]
+					}
+				}
+			},
+			"required": [ "IssueNumber", "CodeList" ]
+		}
+	},
+	"required": [ "ONIXCodeTable" ]
+}

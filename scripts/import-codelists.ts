@@ -24,7 +24,6 @@ type SourceThemaEntry = {
 
 const root = resolve(import.meta.dirname, "..");
 const rawDirectory = resolve(root, "data/raw");
-const generatedDirectory = resolve(root, "data/generated");
 const sourceDirectory = resolve(root, "src/generated");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -225,26 +224,11 @@ async function main(): Promise<void> {
       `IssueNumber ${issue} does not match Issue ${filenameIssue} in ${filename}.`,
     );
 
-  const generatedAt = new Date().toISOString();
-  const metadata = { issue, generatedAt };
-  await mkdir(generatedDirectory, { recursive: true });
+  const metadata = { issue };
   await mkdir(sourceDirectory, { recursive: true });
   await writeFile(
-    resolve(generatedDirectory, "codelists.json"),
-    `${JSON.stringify(codelists)}\n`,
-  );
-  await writeFile(
-    resolve(generatedDirectory, "metadata.json"),
-    `${JSON.stringify(metadata)}\n`,
-  );
-  const runtimeLists = codelists.map(({ number, heading, entries }) => ({
-    number,
-    heading,
-    entries: entries.map(({ code, heading }) => ({ code, heading })),
-  }));
-  await writeFile(
     resolve(sourceDirectory, "codelists.ts"),
-    `// Generated from ${basename(filename)}. Do not edit manually.\nimport type { Codelist, CodelistEntry } from "../types/codelist.js";\n\nexport const codelists: readonly Codelist[] = ${JSON.stringify(runtimeLists)};\nexport const codelistsByNumber = new Map(codelists.map((codelist) => [codelist.number, codelist]));\nexport const codelistEntriesByCode = new Map<number, ReadonlyMap<string, CodelistEntry>>(codelists.map((codelist) => [codelist.number, new Map(codelist.entries.map((entry) => [entry.code, entry]))]));\n`,
+    `// Generated from ${basename(filename)}. Do not edit manually.\nimport type { Codelist, CodelistEntry } from "../types/codelist.js";\n\nexport const codelists: readonly Codelist[] = ${JSON.stringify(codelists)};\nexport const codelistsByNumber = new Map(codelists.map((codelist) => [codelist.number, codelist]));\nexport const codelistEntriesByCode = new Map<number, ReadonlyMap<string, CodelistEntry>>(codelists.map((codelist) => [codelist.number, new Map(codelist.entries.map((entry) => [entry.code, entry]))]));\n`,
   );
   await writeFile(
     resolve(sourceDirectory, "metadata.ts"),
@@ -268,16 +252,7 @@ async function main(): Promise<void> {
     issue: thema.issue,
     version: thema.version,
     lastUpdated: thema.lastUpdated,
-    generatedAt,
   };
-  await writeFile(
-    resolve(generatedDirectory, "thema.json"),
-    `${JSON.stringify(thema.entries)}\n`,
-  );
-  await writeFile(
-    resolve(generatedDirectory, "thema-metadata.json"),
-    `${JSON.stringify(themaMetadata)}\n`,
-  );
   await writeFile(
     resolve(sourceDirectory, "thema.ts"),
     `// Generated from ${basename(themaFilename)}. Do not edit manually.\nimport type { ThemaEntry } from "../types/thema.js";\n\nexport const themaEntries: readonly ThemaEntry[] = ${JSON.stringify(thema.entries)};\nexport const themaEntriesByCode = new Map<string, ThemaEntry>(themaEntries.map((entry) => [entry.code, entry]));\nexport const themaEntriesByParent = new Map<string | undefined, ThemaEntry[]>();\nfor (const entry of themaEntries) {\n  const children = themaEntriesByParent.get(entry.parentCode);\n  if (children) children.push(entry);\n  else themaEntriesByParent.set(entry.parentCode, [entry]);\n}\n`,

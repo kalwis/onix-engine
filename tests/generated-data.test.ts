@@ -7,9 +7,6 @@ import { themaMetadata } from "../src/generated/thema-metadata.js";
 describe("generated ONIX data", () => {
   it("has valid metadata", () => {
     expect(metadata.issue).toBe(74);
-    expect(new Date(metadata.generatedAt).toISOString()).toBe(
-      metadata.generatedAt,
-    );
   });
 
   it("has numbers, headings, and no duplicate codes", () => {
@@ -63,9 +60,6 @@ describe("generated Thema data", () => {
       version: "v1.6.0",
       lastUpdated: "2025-04-10",
     });
-    expect(new Date(themaMetadata.generatedAt).toISOString()).toBe(
-      themaMetadata.generatedAt,
-    );
   });
 
   it("has complete, unique codes with valid parents", () => {
